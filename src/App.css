@@ -1,38 +1,109 @@
 .App {
   text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
   background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  justify-content: flex-start;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.App-header {
+  margin-bottom: 20px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+nav {
+  background-color: #1a1d24;
+  width: 100%;
+  padding: 10px 0;
+  margin-bottom: 20px;
+}
+
+nav ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+}
+
+nav ul li {
+  margin: 0 10px;
+}
+
+nav ul li a {
+  color: white;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover {
+  background-color: #3a3f4b;
+}
+
+nav ul li a.active {
+  background-color: #3a3f4b;
+}
+
+.card-container {
+  width: 80%;
+  max-width: 800px;
+}
+
+.card {
+  background-color: #3a3f4b;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-left {
+  text-align: left;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.download, .run {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.downloading {
+  background-color: #FFA500;
+  color: white;
+}
+
+.stop {
+  background-color: #f44336;
+  color: white;
+}
+
+.settings {
+  background-color: #808080;
+  color: white;
+}
+
+/* New styles for tab content areas */
+.Nodes, .Wallet, .Tools, .Settings, .Other {
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Ensure content doesn't overlap with nav */
+.App > div:not(nav) {
+  margin-top: 60px;
 }
