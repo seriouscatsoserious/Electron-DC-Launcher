@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from './Card';
-import cardData from '../CardData.json';
 
 function Nodes() {
+  const [chains, setChains] = useState([]);
+
+  useEffect(() => {
+    const fetchChains = async () => {
+      try {
+        const config = await window.electronAPI.getConfig();
+        setChains(config.chains);
+      } catch (error) {
+        console.error('Failed to fetch chain config:', error);
+      }
+    };
+
+    fetchChains();
+  }, []);
+
   return (
     <div className="Nodes">
       <h1>Drivechain Launcher</h1>
-      <div className="card-container">
-        {cardData.map(card => (
-          <Card key={card.id} data={card} />
+      <div className="chain-list">
+        {chains.map(chain => (
+          <Card key={chain.id} chain={chain} />
         ))}
       </div>
     </div>

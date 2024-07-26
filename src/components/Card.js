@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Card = ({ data }) => {
+const Card = ({ chain }) => {
   const [buttonState, setButtonState] = useState('download');
 
   const handleButtonClick = () => {
@@ -30,9 +30,8 @@ const Card = ({ data }) => {
         >
           {buttonState.charAt(0).toUpperCase() + buttonState.slice(1)}
         </button>
-        <h2>{data.title}</h2>
-        <p>{data.description}</p>
-        {data.blockHeight && <p>Block height: {data.blockHeight}</p>}
+        <h2>{chain.display_name}</h2>
+        <p>{chain.description}</p>
       </div>
       <div className="card-right">
         <button className="btn settings">Settings</button>
