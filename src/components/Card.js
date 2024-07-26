@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const Card = ({ chain }) => {
-  const [buttonState, setButtonState] = useState('download');
-
-  const handleButtonClick = () => {
-    switch (buttonState) {
-      case 'download':
-        setButtonState('downloading');
-        setTimeout(() => setButtonState('run'), 3000);
+const Card = ({ chain, onUpdateChain }) => {
+  const handleAction = async () => {
+    switch (chain.status) {
+      case 'not_downloaded':
+        try {
+          onUpdateChain(chain.id, { status: 'downloading', progress: 0 });
+          await window.electronAPI.downloadChain(chain.id);
+          onUpdateChain(chain.id, { status: 'downloaded', progress: 100 });
+        } catch (error) {
+          console.error('Download failed:', error);
+          onUpdateChain(chain.id, { status: 'not_downloaded', progress: 0 });
+        }
         break;
-      case 'run':
-        setButtonState('stop');
+      case 'downloaded':
+      case 'stopped':
+        try {
+          await window.electronAPI.startChain(chain.id);
+          onUpdateChain(chain.id, { status: 'running' });
+        } catch (error) {
+          console.error('Start failed:', error);
+        }
         break;
-      case 'stop':
-        setButtonState('run');
-        break;
-      default:
+      case 'running':
+        try {
+          await window.electronAPI.stopChain(chain.id);
+          onUpdateChain(chain.id, { status: 'stopped' });
+        } catch (error) {
+          console.error('Stop failed:', error);
+        }
         break;
     }
   };
@@ -24,14 +37,19 @@ const Card = ({ chain }) => {
     <div className="card">
       <div className="card-left">
         <button
-          className={`btn ${buttonState}`}
-          onClick={handleButtonClick}
-          disabled={buttonState === 'downloading'}
+          className={`btn ${chain.status}`}
+          onClick={handleAction}
+          disabled={chain.status === 'downloading'}
         >
-          {buttonState.charAt(0).toUpperCase() + buttonState.slice(1)}
+          {chain.status === 'not_downloaded' && 'Download'}
+          {chain.status === 'downloaded' && 'Start'}
+          {chain.status === 'running' && 'Stop'}
+          {chain.status === 'stopped' && 'Start'}
+          {chain.status === 'downloading' && `Downloading ${chain.progress.toFixed(2)}%`}
         </button>
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
+        <p>Version: {chain.version}</p>
       </div>
       <div className="card-right">
         <button className="btn settings">Settings</button>
