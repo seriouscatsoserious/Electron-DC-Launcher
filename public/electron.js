@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs').promises;
 const isDev = require('electron-is-dev');
 const { spawn } = require('child_process');
+const AdmZip = require('adm-zip');
+const { access, constants, chmod } = fs;
 
 let electronDl;
 
@@ -106,48 +108,77 @@ app.whenReady().then(async () => {
   ipcMain.handle('download-chain', async (event, chainId) => {
     const chain = config.chains.find(c => c.id === chainId);
     if (!chain) throw new Error('Chain not found');
-
+  
     const url = chain.download.base_url + chain.download.files[process.platform];
-    const dir = path.join(app.getPath('home'), chain.directories.base[process.platform]);
-
+    const homeDir = app.getPath('home');
+    const baseDir = path.join(homeDir, chain.directories.base[process.platform]);
+    const zipPath = path.join(baseDir, 'temp.zip');
+  
     downloadProgress[chainId] = 0;
-
+  
     try {
-      await electronDl.download(BrowserWindow.getFocusedWindow(), url, {        directory: dir,
+      // Download
+      await electronDl.download(BrowserWindow.getFocusedWindow(), url, {
+        directory: baseDir,
+        filename: 'temp.zip',
         onProgress: (progress) => {
           downloadProgress[chainId] = progress.percent * 100;
           event.sender.send('download-progress', { chainId, progress: downloadProgress[chainId] });
         }
       });
+  
+      // Extract
+      event.sender.send('download-progress', { chainId, progress: 100, status: 'Extracting...' });
+      const zip = new AdmZip(zipPath);
+      zip.extractAllTo(baseDir, true);
+  
+      // Delete zip file
+      await fs.unlink(zipPath);
+  
       return { success: true };
     } catch (error) {
-      console.error('Download failed:', error);
+      console.error('Download or extraction failed:', error);
       return { success: false, error: error.message };
     }
   });
 
+
+  
   ipcMain.handle('start-chain', async (event, chainId) => {
     const chain = config.chains.find(c => c.id === chainId);
     if (!chain) throw new Error('Chain not found');
-
-    const dir = path.join(app.getPath('home'), chain.directories.base[process.platform]);
-    const executable = path.join(dir, chain.binary[process.platform]);
-
+  
+    const homeDir = app.getPath('home');
+    const baseDir = path.join(homeDir, chain.directories.base[process.platform]);
+    
+    const binaryPath = chain.binary[process.platform];
+    const fullBinaryPath = path.join(baseDir, binaryPath);
+  
+    console.log(`Attempting to start binary at: ${fullBinaryPath}`);
+  
     try {
-      const process = spawn(executable, [], { cwd: dir });
-      runningProcesses[chainId] = process;
-
-      process.on('error', (error) => {
+      // Check if the binary exists
+      await access(fullBinaryPath, constants.F_OK);
+  
+      // Make the binary executable (only needed for Unix-based systems)
+      if (process.platform !== 'win32') {
+        await chmod(fullBinaryPath, '755');
+      }
+  
+      const childProcess = spawn(fullBinaryPath, [], { cwd: baseDir });
+      runningProcesses[chainId] = childProcess;
+  
+      childProcess.on('error', (error) => {
         console.error(`Process for ${chainId} encountered an error:`, error);
         event.sender.send('chain-status-update', { chainId, status: 'error', error: error.message });
       });
-
-      process.on('exit', (code) => {
+  
+      childProcess.on('exit', (code) => {
         console.log(`Process for ${chainId} exited with code ${code}`);
         delete runningProcesses[chainId];
         event.sender.send('chain-status-update', { chainId, status: 'stopped' });
       });
-
+  
       return { success: true };
     } catch (error) {
       console.error('Failed to start chain:', error);

@@ -34,10 +34,10 @@
           }
         },
         "binary": {
-          "linux": "drivechain-qt",
-          "darwin": "drivechain-qt",
-          "win32": "drivechain-qt.exe"
-        },
+          "linux": "L1-Mainchain-latest-x86_64-unknown-linux-gnu/drivechain-qt",
+          "darwin": "L1-Mainchain-latest-x86_64-apple-darwin/drivechain-qt",
+          "win32": "L1-Mainchain-latest-x86_64-w64-mingw32/drivechain-qt.exe"
+      },
         "network": {
           "port": 8332
         },

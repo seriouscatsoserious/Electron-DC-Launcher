@@ -6,8 +6,12 @@ const Card = ({ chain, onUpdateChain }) => {
       case 'not_downloaded':
         try {
           onUpdateChain(chain.id, { status: 'downloading', progress: 0 });
-          await window.electronAPI.downloadChain(chain.id);
-          onUpdateChain(chain.id, { status: 'downloaded', progress: 100 });
+          const result = await window.electronAPI.downloadChain(chain.id);
+          if (result.success) {
+            onUpdateChain(chain.id, { status: 'downloaded', progress: 100 });
+          } else {
+            throw new Error(result.error);
+          }
         } catch (error) {
           console.error('Download failed:', error);
           onUpdateChain(chain.id, { status: 'not_downloaded', progress: 0 });
@@ -45,7 +49,13 @@ const Card = ({ chain, onUpdateChain }) => {
           {chain.status === 'downloaded' && 'Start'}
           {chain.status === 'running' && 'Stop'}
           {chain.status === 'stopped' && 'Start'}
-          {chain.status === 'downloading' && `Downloading ${chain.progress.toFixed(2)}%`}
+          {chain.status === 'downloading' && (
+  <span>
+    {chain.progress < 100 
+      ? `Downloading ${chain.progress.toFixed(2)}%` 
+      : 'Extracting...'}
+  </span>
+)}
         </button>
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
