@@ -1,4 +1,4 @@
-# Drivechain Launcher
+# Electron Drivechain Launcher
 
 ## Overview
 
