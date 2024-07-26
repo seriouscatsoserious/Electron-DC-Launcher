@@ -46,7 +46,6 @@ nav ul li a:hover {
 
 nav ul li a.active {
   background-color: #3a3f4b;
-  font-weight: bold;
 }
 
 .card-container {
