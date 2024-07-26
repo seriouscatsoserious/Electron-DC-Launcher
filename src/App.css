@@ -96,14 +96,12 @@ nav ul li a.active {
   color: white;
 }
 
-/* New styles for tab content areas */
 .Nodes, .Wallet, .Tools, .Settings, .Other {
   width: 100%;
   padding: 20px;
   box-sizing: border-box;
 }
 
-/* Ensure content doesn't overlap with nav */
 .App > div:not(nav) {
   margin-top: 60px;
 }
