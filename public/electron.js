@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
+const util = require('util');
 const isDev = require('electron-is-dev');
 const { spawn } = require('child_process');
 const AdmZip = require('adm-zip');
@@ -15,6 +16,60 @@ let electronDl;
 // Load configuration
 const configPath = path.join(__dirname, 'chain_config.json');
 let config;
+
+class DownloadManager {
+  constructor() {
+    this.queue = [];
+    this.isProcessing = false;
+  }
+
+  addToQueue(chainId, url, basePath) {
+    this.queue.push({ chainId, url, basePath });
+    this.processQueue();
+  }
+
+  async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    
+    this.isProcessing = true;
+    const { chainId, url, basePath } = this.queue.shift();
+    
+    try {
+      await this.downloadAndExtract(chainId, url, basePath);
+    } catch (error) {
+      console.error(`Error processing ${chainId}:`, error);
+      mainWindow.webContents.send('download-error', { chainId, error: error.message });
+    }
+
+    this.isProcessing = false;
+    this.processQueue();
+  }
+
+  async downloadAndExtract(chainId, url, basePath) {
+    const zipPath = path.join(basePath, 'temp.zip');
+
+    // Download
+    await electronDl.download(BrowserWindow.getFocusedWindow(), url, {
+      directory: basePath,
+      filename: 'temp.zip',
+      onProgress: (progress) => {
+        mainWindow.webContents.send('download-progress', { chainId, progress: progress.percent * 100 });
+      }
+    });
+
+    // Extract
+    mainWindow.webContents.send('download-progress', { chainId, progress: 100, status: 'Extracting...' });
+    const zip = new AdmZip(zipPath);
+    await util.promisify(zip.extractAllToAsync)(basePath, true);
+
+    // Clean up
+    await fs.unlink(zipPath);
+
+    mainWindow.webContents.send('download-complete', { chainId });
+  }
+}
+
+const downloadManager = new DownloadManager();
 
 async function loadConfig() {
   try {
@@ -69,7 +124,6 @@ async function setupChainDirectories() {
 }
 
 let mainWindow = null;
-let downloadProgress = {};
 let runningProcesses = {};
 
 function createWindow() {
@@ -112,34 +166,9 @@ app.whenReady().then(async () => {
     const url = chain.download.base_url + chain.download.files[process.platform];
     const homeDir = app.getPath('home');
     const baseDir = path.join(homeDir, chain.directories.base[process.platform]);
-    const zipPath = path.join(baseDir, 'temp.zip');
   
-    downloadProgress[chainId] = 0;
-  
-    try {
-      // Download
-      await electronDl.download(BrowserWindow.getFocusedWindow(), url, {
-        directory: baseDir,
-        filename: 'temp.zip',
-        onProgress: (progress) => {
-          downloadProgress[chainId] = progress.percent * 100;
-          mainWindow.webContents.send('download-progress', { chainId, progress: downloadProgress[chainId] });
-        }
-      });
-  
-      // Extract
-      mainWindow.webContents.send('download-progress', { chainId, progress: 100, status: 'Extracting...' });
-      const zip = new AdmZip(zipPath);
-      zip.extractAllTo(baseDir, true);
-  
-      // Delete zip file
-      await fs.unlink(zipPath);
-  
-      return { success: true };
-    } catch (error) {
-      console.error('Download or extraction failed:', error);
-      return { success: false, error: error.message };
-    }
+    downloadManager.addToQueue(chainId, url, baseDir);
+    return { success: true };
   });
 
   ipcMain.handle('start-chain', async (event, chainId) => {

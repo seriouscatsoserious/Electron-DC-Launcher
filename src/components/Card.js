@@ -79,20 +79,9 @@ const Card = ({ chain, onUpdateChain }) => {
         >
           {getButtonText()}
         </button>
-        {chain.status === 'downloading' && (
-          <div className="progress-bar-container">
-            <div 
-              className="progress-bar" 
-              style={{ width: `${chain.progress || 0}%` }}
-            ></div>
-          </div>
-        )}
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
         <p>Version: {chain.version}</p>
-        {chain.status === 'downloading' && (
-          <p>Download progress: {(chain.progress || 0).toFixed(2)}%</p>
-        )}
       </div>
       <div className="card-right">
         <button className="btn settings">Settings</button>

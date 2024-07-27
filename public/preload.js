@@ -23,6 +23,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('chain-status-update', subscription);
     };
   },
+  onDownloadComplete: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('download-complete', subscription);
+    return () => {
+      ipcRenderer.removeListener('download-complete', subscription);
+    };
+  },
   sendMessage: (channel, data) => {
     let validChannels = ['toMain'];
     if (validChannels.includes(channel)) {
