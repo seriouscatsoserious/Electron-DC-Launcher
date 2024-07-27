@@ -1,17 +1,13 @@
 import React from 'react';
 
-const Card = ({ chain, onUpdateChain }) => {
+const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
   const handleAction = async () => {
     switch (chain.status) {
       case 'not_downloaded':
         try {
-          onUpdateChain(chain.id, { status: 'downloading', progress: 0 });
-          const result = await window.electronAPI.downloadChain(chain.id);
-          if (result.success) {
-            onUpdateChain(chain.id, { status: 'downloaded', progress: 100 });
-          } else {
-            throw new Error(result.error);
-          }
+          console.log(`Initiating download for chain ${chain.id}`);
+          await onDownload(chain.id);
+          // The status update will be handled by the Nodes component based on events from the main process
         } catch (error) {
           console.error('Download failed:', error);
           onUpdateChain(chain.id, { status: 'not_downloaded', progress: 0 });
@@ -20,16 +16,18 @@ const Card = ({ chain, onUpdateChain }) => {
       case 'downloaded':
       case 'stopped':
         try {
-          await window.electronAPI.startChain(chain.id);
-          onUpdateChain(chain.id, { status: 'running' });
+          console.log(`Starting chain ${chain.id}`);
+          await onStart(chain.id);
+          // The status update will be handled by the Nodes component
         } catch (error) {
           console.error('Start failed:', error);
         }
         break;
       case 'running':
         try {
-          await window.electronAPI.stopChain(chain.id);
-          onUpdateChain(chain.id, { status: 'stopped' });
+          console.log(`Stopping chain ${chain.id}`);
+          await onStop(chain.id);
+          // The status update will be handled by the Nodes component
         } catch (error) {
           console.error('Stop failed:', error);
         }
@@ -58,7 +56,7 @@ const Card = ({ chain, onUpdateChain }) => {
       case 'not_downloaded':
         return 'Download';
       case 'downloading':
-        return 'Downloading';
+        return `Downloading ${chain.progress.toFixed(0)}%`;
       case 'downloaded':
       case 'stopped':
         return 'Start';

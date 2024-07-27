@@ -4,15 +4,16 @@ const downloadSlice = createSlice({
   name: 'downloads',
   initialState: {},
   reducers: {
-    updateDownloadProgress: (state, action) => {
-      const { chainId, progress, status } = action.payload;
-      state[chainId] = { progress, status };
-    },
-    removeDownload: (state, action) => {
-      delete state[action.payload];
+    updateDownloadQueue: (state, action) => {
+      const { chainId, status, progress } = action.payload;
+      if (status === 'completed') {
+        delete state[chainId];
+      } else {
+        state[chainId] = { status, progress };
+      }
     }
   }
 });
 
-export const { updateDownloadProgress, removeDownload } = downloadSlice.actions;
+export const { updateDownloadQueue } = downloadSlice.actions;
 export default downloadSlice.reducer;

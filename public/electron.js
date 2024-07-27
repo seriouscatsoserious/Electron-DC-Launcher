@@ -23,25 +23,45 @@ class DownloadManager {
     this.isProcessing = false;
   }
 
+  sendQueueUpdate() {
+    if (mainWindow) {
+      mainWindow.webContents.send('download-queue-update', this.queue);
+    }
+  }
+
   addToQueue(chainId, url, basePath) {
-    this.queue.push({ chainId, url, basePath });
+    console.log(`Adding to queue: ${chainId}`);
+    this.queue.push({ chainId, url, basePath, status: 'queued', progress: 0 });
+    this.sendQueueUpdate();
     this.processQueue();
   }
 
   async processQueue() {
+    console.log(`Processing queue. Current queue length: ${this.queue.length}`);
     if (this.isProcessing || this.queue.length === 0) return;
     
     this.isProcessing = true;
-    const { chainId, url, basePath } = this.queue.shift();
+    const download = this.queue[0];
+    console.log(`Starting download for ${download.chainId}`);
+    download.status = 'downloading';
+    this.sendQueueUpdate();
     
     try {
-      await this.downloadAndExtract(chainId, url, basePath);
+      await this.downloadAndExtract(download.chainId, download.url, download.basePath);
+      download.status = 'completed';
+      download.progress = 100;
+      console.log(`Download completed for ${download.chainId}`);
     } catch (error) {
-      console.error(`Error processing ${chainId}:`, error);
-      mainWindow.webContents.send('download-error', { chainId, error: error.message });
+      console.error(`Error processing ${download.chainId}:`, error);
+      download.status = 'error';
+      if (mainWindow) {
+        mainWindow.webContents.send('download-error', { chainId: download.chainId, error: error.message });
+      }
     }
 
+    this.queue.shift();
     this.isProcessing = false;
+    this.sendQueueUpdate();
     this.processQueue();
   }
 
@@ -53,7 +73,12 @@ class DownloadManager {
       directory: basePath,
       filename: 'temp.zip',
       onProgress: (progress) => {
-        mainWindow.webContents.send('download-progress', { chainId, progress: progress.percent * 100 });
+        const download = this.queue.find(d => d.chainId === chainId);
+        if (download) {
+          download.progress = progress.percent * 100;
+          this.sendQueueUpdate();
+          mainWindow.webContents.send('download-progress', { chainId, progress: download.progress });
+        }
       }
     });
 
@@ -64,7 +89,6 @@ class DownloadManager {
 
     // Clean up
     await fs.unlink(zipPath);
-
     mainWindow.webContents.send('download-complete', { chainId });
   }
 }
@@ -242,6 +266,10 @@ app.whenReady().then(async () => {
     } catch (error) {
       return 'not_downloaded';
     }
+  });
+
+  ipcMain.handle('get-download-queue', () => {
+    return downloadManager.queue;
   });
 });
 

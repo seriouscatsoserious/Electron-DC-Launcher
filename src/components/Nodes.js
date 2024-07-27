@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import Card from './Card';
 import DownloadModal from './DownloadModal';
-import { updateDownloadProgress, removeDownload } from '../store/downloadSlice';
+import { updateDownloadQueue } from '../store/downloadSlice';
 
 function Nodes() {
   const [chains, setChains] = useState([]);
@@ -28,13 +28,23 @@ function Nodes() {
     const downloadProgressHandler = (data) => {
       if (data && data.chainId && typeof data.progress === 'number') {
         console.log(`Download progress for chain ${data.chainId}: ${data.progress}%`);
-        dispatch(updateDownloadProgress(data));
+        dispatch(updateDownloadQueue({ chainId: data.chainId, status: 'downloading', progress: data.progress }));
         setChains(chains => chains.map(chain =>
           chain.id === data.chainId ? { ...chain, status: 'downloading', progress: data.progress } : chain
         ));
       } else {
         console.error('Received invalid download progress data:', data);
       }
+    };
+
+    const downloadQueueUpdateHandler = (queue) => {
+      console.log('Received download queue update:', queue);
+      queue.forEach(item => {
+        dispatch(updateDownloadQueue(item));
+        setChains(chains => chains.map(chain =>
+          chain.id === item.chainId ? { ...chain, status: item.status, progress: item.progress } : chain
+        ));
+      });
     };
 
     const chainStatusUpdateHandler = ({ chainId, status }) => {
@@ -44,26 +54,23 @@ function Nodes() {
     };
 
     const downloadCompleteHandler = ({ chainId }) => {
-      dispatch(removeDownload(chainId));
+      dispatch(updateDownloadQueue({ chainId, status: 'completed', progress: 100 }));
       setChains(chains => chains.map(chain =>
         chain.id === chainId ? { ...chain, status: 'downloaded', progress: 100 } : chain
       ));
     };
 
     const unsubscribeProgress = window.electronAPI.onDownloadProgress(downloadProgressHandler);
+    const unsubscribeQueueUpdate = window.electronAPI.onDownloadQueueUpdate(downloadQueueUpdateHandler);
     const unsubscribeStatus = window.electronAPI.onChainStatusUpdate(chainStatusUpdateHandler);
-    
-    let unsubscribeDownloadComplete;
-    if (window.electronAPI.onDownloadComplete) {
-      unsubscribeDownloadComplete = window.electronAPI.onDownloadComplete(downloadCompleteHandler);
-    } else {
-      console.warn('onDownloadComplete is not available');
-    }
+    const unsubscribeDownloadComplete = window.electronAPI.onDownloadComplete(downloadCompleteHandler);
 
     return () => {
       if (typeof unsubscribeProgress === 'function') unsubscribeProgress();
       if (typeof unsubscribeStatus === 'function') unsubscribeStatus();
       if (typeof unsubscribeDownloadComplete === 'function') unsubscribeDownloadComplete();
+      if (typeof unsubscribeProgress === 'function') unsubscribeProgress();
+      if (typeof unsubscribeQueueUpdate === 'function') unsubscribeQueueUpdate();
     };
   }, [dispatch]);
 
@@ -75,7 +82,9 @@ function Nodes() {
 
   const handleDownloadChain = async (chainId) => {
     try {
+      console.log(`Attempting to download chain ${chainId}`);
       await window.electronAPI.downloadChain(chainId);
+      console.log(`Download initiated for chain ${chainId}`);
       setChains(chains => chains.map(chain =>
         chain.id === chainId ? { ...chain, status: 'downloading', progress: 0 } : chain
       ));

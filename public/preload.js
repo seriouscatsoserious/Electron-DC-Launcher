@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('download-progress', subscription);
     };
   },
+  onDownloadQueueUpdate: (callback) => ipcRenderer.on('download-queue-update', (_, data) => callback(data)),
   onChainStatusUpdate: (callback) => {
     const subscription = (event, data) => callback(data);
     ipcRenderer.on('chain-status-update', subscription);

@@ -109,21 +109,8 @@ nav ul li a.active {
   padding: 15px;
 }
 
-.download-modal h2 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 18px;
-  color: #333;
-}
-
 .download-item {
   margin-bottom: 15px;
-}
-
-.download-item p {
-  margin: 0 0 5px 0;
-  font-size: 14px;
-  color: #555;
 }
 
 .progress-bar-container {
@@ -139,7 +126,6 @@ nav ul li a.active {
   background-color: #4CAF50;
   transition: width 0.3s ease;
 }
-
 .stop {
   background-color: #f44336;
   color: white;
