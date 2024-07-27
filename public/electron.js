@@ -123,12 +123,12 @@ app.whenReady().then(async () => {
         filename: 'temp.zip',
         onProgress: (progress) => {
           downloadProgress[chainId] = progress.percent * 100;
-          event.sender.send('download-progress', { chainId, progress: downloadProgress[chainId] });
+          mainWindow.webContents.send('download-progress', { chainId, progress: downloadProgress[chainId] });
         }
       });
   
       // Extract
-      event.sender.send('download-progress', { chainId, progress: 100, status: 'Extracting...' });
+      mainWindow.webContents.send('download-progress', { chainId, progress: 100, status: 'Extracting...' });
       const zip = new AdmZip(zipPath);
       zip.extractAllTo(baseDir, true);
   
@@ -142,8 +142,6 @@ app.whenReady().then(async () => {
     }
   });
 
-
-  
   ipcMain.handle('start-chain', async (event, chainId) => {
     const chain = config.chains.find(c => c.id === chainId);
     if (!chain) throw new Error('Chain not found');
@@ -170,13 +168,13 @@ app.whenReady().then(async () => {
   
       childProcess.on('error', (error) => {
         console.error(`Process for ${chainId} encountered an error:`, error);
-        event.sender.send('chain-status-update', { chainId, status: 'error', error: error.message });
+        mainWindow.webContents.send('chain-status-update', { chainId, status: 'error', error: error.message });
       });
   
       childProcess.on('exit', (code) => {
         console.log(`Process for ${chainId} exited with code ${code}`);
         delete runningProcesses[chainId];
-        event.sender.send('chain-status-update', { chainId, status: 'stopped' });
+        mainWindow.webContents.send('chain-status-update', { chainId, status: 'stopped' });
       });
   
       return { success: true };

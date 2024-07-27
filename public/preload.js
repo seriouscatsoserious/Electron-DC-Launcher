@@ -7,7 +7,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopChain: (chainId) => ipcRenderer.invoke('stop-chain', chainId),
   getChainStatus: (chainId) => ipcRenderer.invoke('get-chain-status', chainId),
   onDownloadProgress: (callback) => {
-    const subscription = (event, data) => callback(data);
+    const subscription = (event, data) => {
+      console.log('Received download progress data:', data);
+      callback(data);
+    };
     ipcRenderer.on('download-progress', subscription);
     return () => {
       ipcRenderer.removeListener('download-progress', subscription);

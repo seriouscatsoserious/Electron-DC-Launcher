@@ -21,10 +21,15 @@ function Nodes() {
 
     fetchChains();
 
-    const downloadProgressHandler = (event, { chainId, progress }) => {
-      setChains(chains => chains.map(chain => 
-        chain.id === chainId ? { ...chain, progress } : chain
-      ));
+    const downloadProgressHandler = (data) => {
+      if (data && data.chainId && typeof data.progress === 'number') {
+        console.log(`Download progress for chain ${data.chainId}: ${data.progress}%`);
+        setChains(chains => chains.map(chain => 
+          chain.id === data.chainId ? { ...chain, progress: data.progress } : chain
+        ));
+      } else {
+        console.error('Received invalid download progress data:', data);
+      }
     };
 
     const chainStatusUpdateHandler = (event, { chainId, status }) => {
@@ -33,13 +38,12 @@ function Nodes() {
       ));
     };
 
-    window.electronAPI.onDownloadProgress(downloadProgressHandler);
-    window.electronAPI.onChainStatusUpdate(chainStatusUpdateHandler);
+    const unsubscribeProgress = window.electronAPI.onDownloadProgress(downloadProgressHandler);
+    const unsubscribeStatus = window.electronAPI.onChainStatusUpdate(chainStatusUpdateHandler);
 
     return () => {
-      // Clean up listeners
-      window.electronAPI.onDownloadProgress(downloadProgressHandler);
-      window.electronAPI.onChainStatusUpdate(chainStatusUpdateHandler);
+      if (typeof unsubscribeProgress === 'function') unsubscribeProgress();
+      if (typeof unsubscribeStatus === 'function') unsubscribeStatus();
     };
   }, []);
 

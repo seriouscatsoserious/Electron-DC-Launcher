@@ -50,12 +50,12 @@ const Card = ({ chain, onUpdateChain }) => {
           {chain.status === 'running' && 'Stop'}
           {chain.status === 'stopped' && 'Start'}
           {chain.status === 'downloading' && (
-  <span>
-    {chain.progress < 100 
-      ? `Downloading ${chain.progress.toFixed(2)}%` 
-      : 'Extracting...'}
-  </span>
-)}
+            <span>
+              {typeof chain.progress === 'number'
+                ? `Downloading ${chain.progress.toFixed(2)}%`
+                : 'Downloading...'}
+            </span>
+          )}
         </button>
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
