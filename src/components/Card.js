@@ -37,29 +37,62 @@ const Card = ({ chain, onUpdateChain }) => {
     }
   };
 
+  const getButtonClass = () => {
+    switch (chain.status) {
+      case 'not_downloaded':
+        return 'download';
+      case 'downloading':
+        return 'downloading';
+      case 'downloaded':
+      case 'stopped':
+        return 'run';
+      case 'running':
+        return 'stop';
+      default:
+        return '';
+    }
+  };
+
+  const getButtonText = () => {
+    switch (chain.status) {
+      case 'not_downloaded':
+        return 'Download';
+      case 'downloading':
+        return 'Downloading';
+      case 'downloaded':
+      case 'stopped':
+        return 'Start';
+      case 'running':
+        return 'Stop';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="card">
       <div className="card-left">
         <button
-          className={`btn ${chain.status}`}
+          className={`btn ${getButtonClass()}`}
           onClick={handleAction}
           disabled={chain.status === 'downloading'}
         >
-          {chain.status === 'not_downloaded' && 'Download'}
-          {chain.status === 'downloaded' && 'Start'}
-          {chain.status === 'running' && 'Stop'}
-          {chain.status === 'stopped' && 'Start'}
-          {chain.status === 'downloading' && (
-            <span>
-              {typeof chain.progress === 'number'
-                ? `Downloading ${chain.progress.toFixed(2)}%`
-                : 'Downloading...'}
-            </span>
-          )}
+          {getButtonText()}
         </button>
+        {chain.status === 'downloading' && (
+          <div className="progress-bar-container">
+            <div 
+              className="progress-bar" 
+              style={{ width: `${chain.progress || 0}%` }}
+            ></div>
+          </div>
+        )}
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
         <p>Version: {chain.version}</p>
+        {chain.status === 'downloading' && (
+          <p>Download progress: {(chain.progress || 0).toFixed(2)}%</p>
+        )}
       </div>
       <div className="card-right">
         <button className="btn settings">Settings</button>
