@@ -8,12 +8,15 @@ const chainsSlice = createSlice({
       return action.payload;
     },
     updateChainStatus: (state, action) => {
-      const { chainId, status } = action.payload;
+      const { chainId, status, progress } = action.payload;
       const chain = state.find(c => c.id === chainId);
       if (chain) {
         chain.status = status;
+        if (progress !== undefined) {
+          chain.progress = progress;
+        }
       }
-    }
+    },
   }
 });
 

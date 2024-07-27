@@ -1,119 +1,102 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import Card from './Card';
 import DownloadModal from './DownloadModal';
-import { updateDownloadQueue } from '../store/downloadSlice';
+import { updateDownloads } from '../store/downloadSlice';
 
 function Nodes() {
   const [chains, setChains] = useState([]);
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    const fetchChains = async () => {
-      try {
-        const config = await window.electronAPI.getConfig();
-        const chainsWithStatus = await Promise.all(config.chains.map(async chain => ({
-          ...chain,
-          status: await window.electronAPI.getChainStatus(chain.id),
-          progress: 0
-        })));
-        setChains(chainsWithStatus);
-      } catch (error) {
-        console.error('Failed to fetch chain config:', error);
-      }
-    };
+  const fetchChains = useCallback(async () => {
+    try {
+      const config = await window.electronAPI.getConfig();
+      const chainsWithStatus = await Promise.all(config.chains.map(async chain => ({
+        ...chain,
+        status: await window.electronAPI.getChainStatus(chain.id),
+        progress: 0
+      })));
+      setChains(chainsWithStatus);
+    } catch (error) {
+      console.error('Failed to fetch chain config:', error);
+    }
+  }, []);
 
+  const downloadsUpdateHandler = useCallback((downloads) => {
+    console.log('Received downloads update:', downloads);
+    dispatch(updateDownloads(downloads));
+    setChains(prevChains => prevChains.map(chain => {
+      const download = downloads.find(d => d.chainId === chain.id);
+      return download ? { ...chain, status: download.status, progress: download.progress } : chain;
+    }));
+  }, [dispatch]);
+
+  const chainStatusUpdateHandler = useCallback(({ chainId, status }) => {
+    setChains(prevChains => prevChains.map(chain =>
+      chain.id === chainId ? { ...chain, status } : chain
+    ));
+  }, []);
+
+  const downloadCompleteHandler = useCallback(({ chainId }) => {
+    setChains(prevChains => prevChains.map(chain =>
+      chain.id === chainId ? { ...chain, status: 'downloaded', progress: 100 } : chain
+    ));
+  }, []);
+
+  useEffect(() => {
     fetchChains();
 
-    const downloadProgressHandler = (data) => {
-      if (data && data.chainId && typeof data.progress === 'number') {
-        console.log(`Download progress for chain ${data.chainId}: ${data.progress}%`);
-        dispatch(updateDownloadQueue({ chainId: data.chainId, status: 'downloading', progress: data.progress }));
-        setChains(chains => chains.map(chain =>
-          chain.id === data.chainId ? { ...chain, status: 'downloading', progress: data.progress } : chain
-        ));
-      } else {
-        console.error('Received invalid download progress data:', data);
-      }
-    };
-
-    const downloadQueueUpdateHandler = (queue) => {
-      console.log('Received download queue update:', queue);
-      queue.forEach(item => {
-        dispatch(updateDownloadQueue(item));
-        setChains(chains => chains.map(chain =>
-          chain.id === item.chainId ? { ...chain, status: item.status, progress: item.progress } : chain
-        ));
-      });
-    };
-
-    const chainStatusUpdateHandler = ({ chainId, status }) => {
-      setChains(chains => chains.map(chain =>
-        chain.id === chainId ? { ...chain, status } : chain
-      ));
-    };
-
-    const downloadCompleteHandler = ({ chainId }) => {
-      dispatch(updateDownloadQueue({ chainId, status: 'completed', progress: 100 }));
-      setChains(chains => chains.map(chain =>
-        chain.id === chainId ? { ...chain, status: 'downloaded', progress: 100 } : chain
-      ));
-    };
-
-    const unsubscribeProgress = window.electronAPI.onDownloadProgress(downloadProgressHandler);
-    const unsubscribeQueueUpdate = window.electronAPI.onDownloadQueueUpdate(downloadQueueUpdateHandler);
+    const unsubscribeDownloadsUpdate = window.electronAPI.onDownloadsUpdate(downloadsUpdateHandler);
     const unsubscribeStatus = window.electronAPI.onChainStatusUpdate(chainStatusUpdateHandler);
     const unsubscribeDownloadComplete = window.electronAPI.onDownloadComplete(downloadCompleteHandler);
 
+    // Initial downloads fetch
+    window.electronAPI.getDownloads().then(downloadsUpdateHandler);
+
     return () => {
-      if (typeof unsubscribeProgress === 'function') unsubscribeProgress();
+      if (typeof unsubscribeDownloadsUpdate === 'function') unsubscribeDownloadsUpdate();
       if (typeof unsubscribeStatus === 'function') unsubscribeStatus();
       if (typeof unsubscribeDownloadComplete === 'function') unsubscribeDownloadComplete();
-      if (typeof unsubscribeProgress === 'function') unsubscribeProgress();
-      if (typeof unsubscribeQueueUpdate === 'function') unsubscribeQueueUpdate();
     };
-  }, [dispatch]);
+  }, [fetchChains, downloadsUpdateHandler, chainStatusUpdateHandler, downloadCompleteHandler]);
 
-  const handleUpdateChain = (chainId, updates) => {
-    setChains(chains => chains.map(chain =>
+  const handleUpdateChain = useCallback((chainId, updates) => {
+    setChains(prevChains => prevChains.map(chain =>
       chain.id === chainId ? { ...chain, ...updates } : chain
     ));
-  };
+  }, []);
 
-  const handleDownloadChain = async (chainId) => {
+  const handleDownloadChain = useCallback(async (chainId) => {
     try {
       console.log(`Attempting to download chain ${chainId}`);
       await window.electronAPI.downloadChain(chainId);
       console.log(`Download initiated for chain ${chainId}`);
-      setChains(chains => chains.map(chain =>
-        chain.id === chainId ? { ...chain, status: 'downloading', progress: 0 } : chain
-      ));
     } catch (error) {
       console.error(`Failed to start download for chain ${chainId}:`, error);
     }
-  };
+  }, []);
 
-  const handleStartChain = async (chainId) => {
+  const handleStartChain = useCallback(async (chainId) => {
     try {
       await window.electronAPI.startChain(chainId);
-      setChains(chains => chains.map(chain =>
+      setChains(prevChains => prevChains.map(chain =>
         chain.id === chainId ? { ...chain, status: 'running' } : chain
       ));
     } catch (error) {
       console.error(`Failed to start chain ${chainId}:`, error);
     }
-  };
+  }, []);
 
-  const handleStopChain = async (chainId) => {
+  const handleStopChain = useCallback(async (chainId) => {
     try {
       await window.electronAPI.stopChain(chainId);
-      setChains(chains => chains.map(chain =>
+      setChains(prevChains => prevChains.map(chain =>
         chain.id === chainId ? { ...chain, status: 'stopped' } : chain
       ));
     } catch (error) {
       console.error(`Failed to stop chain ${chainId}:`, error);
     }
-  };
+  }, []);
 
   return (
     <div className="Nodes">

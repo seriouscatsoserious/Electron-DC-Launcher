@@ -41,8 +41,6 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         return 'download';
       case 'downloading':
         return 'downloading';
-      case 'queued':
-        return 'queued';
       case 'downloaded':
       case 'stopped':
         return 'run';
@@ -52,15 +50,13 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         return '';
     }
   };
-  
+
   const getButtonText = () => {
     switch (chain.status) {
       case 'not_downloaded':
         return 'Download';
       case 'downloading':
         return 'Downloading';
-      case 'queued':
-        return 'Queued';
       case 'downloaded':
       case 'stopped':
         return 'Start';

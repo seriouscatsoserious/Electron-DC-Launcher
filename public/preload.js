@@ -6,17 +6,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startChain: (chainId) => ipcRenderer.invoke('start-chain', chainId),
   stopChain: (chainId) => ipcRenderer.invoke('stop-chain', chainId),
   getChainStatus: (chainId) => ipcRenderer.invoke('get-chain-status', chainId),
-  onDownloadProgress: (callback) => {
-    const subscription = (event, data) => {
-      console.log('Received download progress data:', data);
-      callback(data);
-    };
-    ipcRenderer.on('download-progress', subscription);
+  onDownloadsUpdate: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('downloads-update', subscription);
     return () => {
-      ipcRenderer.removeListener('download-progress', subscription);
+      ipcRenderer.removeListener('downloads-update', subscription);
     };
   },
-  onDownloadQueueUpdate: (callback) => ipcRenderer.on('download-queue-update', (_, data) => callback(data)),
   onChainStatusUpdate: (callback) => {
     const subscription = (event, data) => callback(data);
     ipcRenderer.on('chain-status-update', subscription);
@@ -31,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('download-complete', subscription);
     };
   },
+  getDownloads: () => ipcRenderer.invoke('get-downloads'),
   sendMessage: (channel, data) => {
     let validChannels = ['toMain'];
     if (validChannels.includes(channel)) {

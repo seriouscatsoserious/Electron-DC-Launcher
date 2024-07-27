@@ -1,95 +1,190 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs');
+const { promises: fsPromises } = fs;
 const util = require('util');
 const isDev = require('electron-is-dev');
 const { spawn } = require('child_process');
 const AdmZip = require('adm-zip');
-const { access, constants, chmod } = fs;
-
-let electronDl;
-
-(async () => {
-  electronDl = await import('electron-dl');
-})();
+const axios = require('axios');
+const { pipeline } = require('stream').promises;
 
 // Load configuration
 const configPath = path.join(__dirname, 'chain_config.json');
 let config;
+let mainWindow = null;
+let runningProcesses = {};
 
 class DownloadManager {
   constructor() {
-    this.queue = [];
-    this.isProcessing = false;
+    this.activeDownloads = new Map();
   }
 
-  sendQueueUpdate() {
-    if (mainWindow) {
-      mainWindow.webContents.send('download-queue-update', this.queue);
-    }
-  }
-
-  addToQueue(chainId, url, basePath) {
-    console.log(`Adding to queue: ${chainId}`);
-    this.queue.push({ chainId, url, basePath, status: 'queued', progress: 0 });
-    this.sendQueueUpdate();
-    this.processQueue();
-  }
-
-  async processQueue() {
-    console.log(`Processing queue. Current queue length: ${this.queue.length}`);
-    if (this.isProcessing || this.queue.length === 0) return;
+  startDownload(chainId, url, basePath) {
+    if (this.activeDownloads.has(chainId)) return;
     
-    this.isProcessing = true;
-    const download = this.queue[0];
-    console.log(`Starting download for ${download.chainId}`);
-    download.status = 'downloading';
-    this.sendQueueUpdate();
-    
-    try {
-      await this.downloadAndExtract(download.chainId, download.url, download.basePath);
-      download.status = 'completed';
-      download.progress = 100;
-      console.log(`Download completed for ${download.chainId}`);
-    } catch (error) {
-      console.error(`Error processing ${download.chainId}:`, error);
-      download.status = 'error';
-      if (mainWindow) {
-        mainWindow.webContents.send('download-error', { chainId: download.chainId, error: error.message });
-      }
-    }
-
-    this.queue.shift();
-    this.isProcessing = false;
-    this.sendQueueUpdate();
-    this.processQueue();
+    this.activeDownloads.set(chainId, { progress: 0, status: 'downloading' });
+    this.downloadAndExtract(chainId, url, basePath);
+    this.sendDownloadsUpdate();
   }
 
   async downloadAndExtract(chainId, url, basePath) {
-    const zipPath = path.join(basePath, 'temp.zip');
+    const zipPath = path.join(basePath, `temp_${chainId}.zip`);
 
-    // Download
-    await electronDl.download(BrowserWindow.getFocusedWindow(), url, {
-      directory: basePath,
-      filename: 'temp.zip',
-      onProgress: (progress) => {
-        const download = this.queue.find(d => d.chainId === chainId);
-        if (download) {
-          download.progress = progress.percent * 100;
-          this.sendQueueUpdate();
-          mainWindow.webContents.send('download-progress', { chainId, progress: download.progress });
+    try {
+      console.log(`Starting download for ${chainId} from ${url}`);
+      await this.downloadFile(chainId, url, zipPath);
+      console.log(`Download completed for ${chainId}. File saved at ${zipPath}`);
+
+      console.log(`Verifying zip file for ${chainId}`);
+      await this.verifyZip(zipPath);
+      console.log(`Zip file verified for ${chainId}`);
+
+      console.log(`Starting extraction for ${chainId}`);
+      await this.extractZip(chainId, zipPath, basePath);
+      console.log(`Extraction completed for ${chainId}`);
+
+      await fsPromises.unlink(zipPath);
+      console.log(`Temporary zip file deleted for ${chainId}`);
+
+      this.activeDownloads.delete(chainId);
+      this.sendDownloadsUpdate();
+      mainWindow.webContents.send('download-complete', { chainId });
+    } catch (error) {
+      console.error(`Error processing ${chainId}:`, error);
+      this.activeDownloads.delete(chainId);
+      this.sendDownloadsUpdate();
+      mainWindow.webContents.send('download-error', { chainId, error: error.message });
+      
+      try {
+        await fsPromises.unlink(zipPath);
+        console.log(`Cleaned up partial download for ${chainId}`);
+      } catch (unlinkError) {
+        console.error(`Failed to delete partial download for ${chainId}:`, unlinkError);
+      }
+    }
+  }
+
+  async downloadFile(chainId, url, zipPath) {
+    return new Promise((resolve, reject) => {
+      axios({
+        method: 'get',
+        url: url,
+        responseType: 'stream'
+      }).then(response => {
+        const totalLength = parseInt(response.headers['content-length'], 10);
+        let downloadedLength = 0;
+        
+        const writer = fs.createWriteStream(zipPath);
+        
+        response.data.on('data', (chunk) => {
+          downloadedLength += chunk.length;
+          writer.write(chunk);
+          const progress = (downloadedLength / totalLength) * 100;
+          this.updateDownloadProgress(chainId, progress);
+        });
+  
+        response.data.on('end', () => {
+          writer.end();
+          console.log(`Download ended for ${chainId}. Total bytes: ${downloadedLength}`);
+          if (downloadedLength === totalLength) {
+            console.log(`Download completed successfully for ${chainId}`);
+            resolve();
+          } else {
+            reject(new Error(`Incomplete download: expected ${totalLength} bytes, got ${downloadedLength} bytes`));
+          }
+        });
+  
+        writer.on('error', reject);
+      }).catch(error => {
+        console.error(`Axios error for ${chainId}:`, error);
+        reject(error);
+      });
+    });
+  }
+
+  async verifyZip(zipPath) {
+    return new Promise((resolve, reject) => {
+      const readStream = fs.createReadStream(zipPath);
+      readStream.on('error', (error) => {
+        console.error(`Error reading zip file: ${error.message}`);
+        reject(error);
+      });
+  
+      let byteCount = 0;
+      const possibleSignatures = [
+        Buffer.from([0x50, 0x4b, 0x05, 0x06]), // ZIP end header
+        Buffer.from([0x50, 0x4b, 0x03, 0x04]), // ZIP local file header
+      ];
+      let foundSignature = false;
+  
+      readStream.on('data', (chunk) => {
+        byteCount += chunk.length;
+        for (let signature of possibleSignatures) {
+          if (chunk.includes(signature)) {
+            foundSignature = true;
+            break;
+          }
         }
+        if (foundSignature) {
+          readStream.destroy(); // Stop reading if we found a signature
+        }
+      });
+  
+      readStream.on('end', () => {
+        console.log(`Zip file read complete. Total bytes: ${byteCount}`);
+        if (foundSignature) {
+          console.log('ZIP signature found');
+          resolve();
+        } else {
+          console.error('No valid ZIP signature found');
+          reject(new Error('Invalid or incomplete file: No ZIP signature found'));
+        }
+      });
+    });
+  }
+  async extractZip(chainId, zipPath, basePath) {
+    this.updateDownloadProgress(chainId, 100, 'extracting');
+    return new Promise((resolve, reject) => {
+      try {
+        console.log(`Creating AdmZip instance for ${zipPath}`);
+        const zip = new AdmZip(zipPath);
+        console.log(`AdmZip instance created successfully for ${chainId}`);
+        
+        console.log(`Starting extraction to ${basePath} for ${chainId}`);
+        zip.extractAllToAsync(basePath, true, (error) => {
+          if (error) {
+            console.error(`Extraction error for ${chainId}: ${error.message}`);
+            reject(error);
+          } else {
+            console.log(`Extraction completed successfully for ${chainId}`);
+            resolve();
+          }
+        });
+      } catch (error) {
+        console.error(`Error in extractZip for ${chainId}: ${error.message}`);
+        reject(error);
       }
     });
+  }
 
-    // Extract
-    mainWindow.webContents.send('download-progress', { chainId, progress: 100, status: 'Extracting...' });
-    const zip = new AdmZip(zipPath);
-    await util.promisify(zip.extractAllToAsync)(basePath, true);
+  updateDownloadProgress(chainId, progress, status = 'downloading') {
+    const download = this.activeDownloads.get(chainId);
+    if (download) {
+      download.progress = progress;
+      download.status = status;
+      this.sendDownloadsUpdate();
+    }
+  }
 
-    // Clean up
-    await fs.unlink(zipPath);
-    mainWindow.webContents.send('download-complete', { chainId });
+  sendDownloadsUpdate() {
+    if (mainWindow) {
+      const downloadsArray = Array.from(this.activeDownloads.entries()).map(([chainId, download]) => ({
+        chainId,
+        ...download
+      }));
+      mainWindow.webContents.send('downloads-update', downloadsArray);
+    }
   }
 }
 
@@ -97,7 +192,7 @@ const downloadManager = new DownloadManager();
 
 async function loadConfig() {
   try {
-    const configData = await fs.readFile(configPath, 'utf8');
+    const configData = await fsPromises.readFile(configPath, 'utf8');
     config = JSON.parse(configData);
     console.log('Loaded config:', config);
   } catch (error) {
@@ -108,7 +203,7 @@ async function loadConfig() {
 
 async function createDirectory(dirPath) {
   try {
-    await fs.mkdir(dirPath, { recursive: true });
+    await fsPromises.mkdir(dirPath, { recursive: true });
     console.log(`Created new directory: ${dirPath}`);
     return true;
   } catch (error) {
@@ -146,9 +241,6 @@ async function setupChainDirectories() {
     console.log(`Created ${directoriesCreated} new chain directories.`);
   }
 }
-
-let mainWindow = null;
-let runningProcesses = {};
 
 function createWindow() {
   if (mainWindow === null) {
@@ -191,7 +283,7 @@ app.whenReady().then(async () => {
     const homeDir = app.getPath('home');
     const baseDir = path.join(homeDir, chain.directories.base[process.platform]);
   
-    downloadManager.addToQueue(chainId, url, baseDir);
+    downloadManager.startDownload(chainId, url, baseDir);
     return { success: true };
   });
 
@@ -209,11 +301,11 @@ app.whenReady().then(async () => {
   
     try {
       // Check if the binary exists
-      await access(fullBinaryPath, constants.F_OK);
+      await fsPromises.access(fullBinaryPath, fs.constants.F_OK);
   
       // Make the binary executable (only needed for Unix-based systems)
       if (process.platform !== 'win32') {
-        await chmod(fullBinaryPath, '755');
+        await fsPromises.chmod(fullBinaryPath, '755');
       }
   
       const childProcess = spawn(fullBinaryPath, [], { cwd: baseDir });
@@ -261,15 +353,18 @@ app.whenReady().then(async () => {
     const executable = path.join(dir, chain.binary[process.platform]);
 
     try {
-      await fs.access(executable);
+      await fsPromises.access(executable);
       return runningProcesses[chainId] ? 'running' : 'stopped';
     } catch (error) {
       return 'not_downloaded';
     }
   });
 
-  ipcMain.handle('get-download-queue', () => {
-    return downloadManager.queue;
+  ipcMain.handle('get-downloads', () => {
+    return Array.from(downloadManager.activeDownloads.entries()).map(([chainId, download]) => ({
+      chainId,
+      ...download
+    }));
   });
 });
 
