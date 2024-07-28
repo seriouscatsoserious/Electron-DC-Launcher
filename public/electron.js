@@ -274,6 +274,10 @@ function createWindow() {
   }
 }
 
+function getChainConfig(chainId) {
+  return config.chains.find(c => c.id === chainId);
+}
+
 app.whenReady().then(async () => {
   await loadConfig();
   await setupChainDirectories();
@@ -293,6 +297,15 @@ app.whenReady().then(async () => {
   
     downloadManager.startDownload(chainId, url, baseDir);
     return { success: true };
+  });
+
+  ipcMain.handle('get-full-data-dir', async (event, chainId) => {
+    const chain = getChainConfig(chainId);
+    if (!chain) throw new Error('Chain not found');
+    const platform = process.platform;
+    const baseDir = chain.directories.base[platform];
+    const fullPath = path.join(app.getPath('home'), baseDir);
+    return fullPath;
   });
 
   ipcMain.handle('start-chain', async (event, chainId) => {
