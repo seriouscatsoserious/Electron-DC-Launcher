@@ -68,17 +68,24 @@ nav ul li a.active {
 }
 
 .btn {
-  padding: 10px 20px;
+  width: 120px; /* Fixed width */
+  padding: 10px 0;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
   margin-right: 10px;
+  text-align: center;
 }
 
-.download, .run {
-  background-color: #4CAF50;
+.download {
+  background-color: #007bff;
   color: white;
+}
+
+.run {
+  background-color: #28a745;
+  color:white;
 }
 
 .downloading {
@@ -86,6 +93,57 @@ nav ul li a.active {
   color: white;
 }
 
+.download-modal {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.download-modal-content {
+  padding: 20px;
+}
+
+.download-modal h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 20px;
+  color: #333;
+}
+
+.download-item {
+  margin-bottom: 20px;
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.download-item p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 10px;
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #4CAF50;
+  transition: width 0.3s ease;
+}
 .stop {
   background-color: #f44336;
   color: white;
