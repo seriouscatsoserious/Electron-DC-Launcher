@@ -152,6 +152,7 @@ class DownloadManager {
 
   async extractZip(chainId, zipPath, basePath) {
     this.updateDownloadProgress(chainId, 100, 'extracting');
+    mainWindow.webContents.send('chain-status-update', { chainId, status: 'extracting' });
     return new Promise((resolve, reject) => {
       try {
         console.log(`Creating AdmZip instance for ${zipPath}`);

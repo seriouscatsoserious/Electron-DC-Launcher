@@ -1,12 +1,57 @@
+:root {
+  --bg-color: #ffffff;
+  --text-color: #333333;
+  --card-bg: #f0f0f0;
+  --btn-bg: #e0e0e0;
+  --btn-text: #333333;
+  --nav-bg: #f8f8f8;
+  --nav-text: #333333;
+  --download-btn: #007bff;
+  --run-btn: #28a745;
+  --stop-btn: #f44336;
+  --downloading-btn: #FFA500;
+  --modal-bg: #f0f0f0;
+  --modal-text: #333;
+  --download-item-bg: #fff;
+  --download-item-text: #555;
+  --progress-bar-bg: #e0e0e0;
+  --progress-bar-fill: #4CAF50;
+}
+
+.dark {
+  --bg-color: #333333;
+  --text-color: #ffffff;
+  --card-bg: #444444;
+  --btn-bg: #555555;
+  --btn-text: #ffffff;
+  --nav-bg: #222222;
+  --nav-text: #ffffff;
+  --download-btn: #0056b3;
+  --run-btn: #1e7e34;
+  --stop-btn: #d32f2f;
+  --downloading-btn: #cc8400;
+  --modal-bg: #444444;
+  --modal-text: #ffffff;
+  --download-item-bg: #555555;
+  --download-item-text: #ffffff;
+  --progress-bar-bg: #666666;
+  --progress-bar-fill: #4CAF50;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
 .App {
   text-align: center;
-  background-color: #282c34;
+  background-color: var(--bg-color);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  color: white;
+  color: var(--text-color);
 }
 
 .App-header {
@@ -14,10 +59,13 @@
 }
 
 nav {
-  background-color: #1a1d24;
+  background-color: var(--nav-bg);
   width: 100%;
   padding: 10px 0;
   margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 nav ul {
@@ -33,34 +81,50 @@ nav ul li {
 }
 
 nav ul li a {
-  color: white;
+  color: var(--nav-text);
   text-decoration: none;
   padding: 5px 10px;
   border-radius: 5px;
   transition: background-color 0.3s ease;
 }
 
-nav ul li a:hover {
-  background-color: #3a3f4b;
-}
-
+nav ul li a:hover,
 nav ul li a.active {
-  background-color: #3a3f4b;
+  background-color: var(--btn-bg);
 }
 
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-color);
+  padding: 5px 15px;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+  border-radius: 5px;
+}
+
+.theme-toggle:hover {
+  background-color: var(--btn-bg);
+}
 .card-container {
   width: 80%;
   max-width: 800px;
 }
 
 .card {
-  background-color: #3a3f4b;
+  background-color: var(--card-bg);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: var(--text-color);
 }
 
 .card-left {
@@ -68,7 +132,7 @@ nav ul li a.active {
 }
 
 .btn {
-  width: 120px; /* Fixed width */
+  width: 120px;
   padding: 10px 0;
   border: none;
   border-radius: 4px;
@@ -76,21 +140,28 @@ nav ul li a.active {
   font-weight: bold;
   margin-right: 10px;
   text-align: center;
+  color: white;
 }
 
 .download {
-  background-color: #007bff;
-  color: white;
+  background-color: var(--download-btn);
 }
 
 .run {
-  background-color: #28a745;
-  color:white;
+  background-color: var(--run-btn);
 }
 
-.downloading {
-  background-color: #FFA500;
-  color: white;
+.downloading, .extracting {
+  background-color: var(--downloading-btn);
+}
+
+.stop {
+  background-color: var(--stop-btn);
+}
+
+.settings {
+  background-color: var(--btn-bg);
+  color: var(--btn-text);
 }
 
 .download-modal {
@@ -100,10 +171,11 @@ nav ul li a.active {
   width: 300px;
   max-height: 80vh;
   overflow-y: auto;
-  background-color: #f0f0f0;
+  background-color: var(--modal-bg);
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   z-index: 1000;
+  color: var(--modal-text);
 }
 
 .download-modal-content {
@@ -114,12 +186,12 @@ nav ul li a.active {
   margin-top: 0;
   margin-bottom: 15px;
   font-size: 20px;
-  color: #333;
+  color: var(--modal-text);
 }
 
 .download-item {
   margin-bottom: 20px;
-  background-color: #fff;
+  background-color: var(--download-item-bg);
   padding: 15px;
   border-radius: 5px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -128,30 +200,21 @@ nav ul li a.active {
 .download-item p {
   margin: 0 0 10px 0;
   font-size: 14px;
-  color: #555;
+  color: var(--download-item-text);
 }
 
 .progress-bar-container {
   width: 100%;
   height: 10px;
-  background-color: #e0e0e0;
+  background-color: var(--progress-bar-bg);
   border-radius: 5px;
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background-color: #4CAF50;
+  background-color: var(--progress-bar-fill);
   transition: width 0.3s ease;
-}
-.stop {
-  background-color: #f44336;
-  color: white;
-}
-
-.settings {
-  background-color: #808080;
-  color: white;
 }
 
 .Nodes, .Wallet, .Tools, .Settings, .Other {
@@ -163,3 +226,4 @@ nav ul li a.active {
 .App > div:not(nav) {
   margin-top: 60px;
 }
+

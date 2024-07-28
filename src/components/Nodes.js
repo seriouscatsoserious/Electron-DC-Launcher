@@ -37,6 +37,7 @@ function Nodes() {
     ));
   }, []);
 
+
   const downloadCompleteHandler = useCallback(({ chainId }) => {
     setChains(prevChains => prevChains.map(chain =>
       chain.id === chainId ? { ...chain, status: 'downloaded', progress: 100 } : chain
