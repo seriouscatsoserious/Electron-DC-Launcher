@@ -4,8 +4,6 @@ import ThemeToggle from './ThemeToggle';
 import styles from './NavBar.module.css';
 
 const NavBar = () => {
-  console.log('NavBar rendering, styles:', styles);
-  
   return (
     <nav className={styles.nav}>
       <ul className={styles.navList}>

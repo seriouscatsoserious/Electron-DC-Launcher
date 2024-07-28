@@ -3,17 +3,17 @@
   top: 0;
   left: 0;
   right: 0;
-  background-color: rgba(44, 44, 44, 0.8); /* Semi-transparent background */
-  backdrop-filter: blur(5px); /* Adds a blur effect to content underneath */
+  background-color: rgba(44, 44, 44, 0.8);
+  backdrop-filter: blur(5px);
   padding: 10px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 1000; /* Ensures navbar stays on top */
+  z-index: 1000;
 }
 
 .navList {
-  list-style: none; /* Removes bullet points */
+  list-style: none;
   display: flex;
   gap: 20px;
   padding: 0;
@@ -30,4 +30,12 @@
 
 .navLink:hover, .navLink.active {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.light) .nav {
+  background-color: rgba(248, 248, 248, 0.8);
+}
+
+:global(.light) .navLink {
+  color: #333333;
 }
