@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import ChainSettingsModal from './ChainSettingsModal';
 
 const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
   const { isDarkMode } = useTheme();
+  const [showSettings, setShowSettings] = useState(false);
+
+
   const handleAction = async () => {
     switch (chain.status) {
       case 'not_downloaded':
@@ -31,6 +35,14 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
           console.error('Stop failed:', error);
         }
         break;
+    }
+  };
+
+  const handleOpenDataDir = async (chainId) => {
+    try {
+      await window.electronAPI.openDataDir(chainId);
+    } catch (error) {
+      console.error('Failed to open data directory:', error);
     }
   };
 
@@ -70,7 +82,8 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
   };
 
   return (
-    <div className={`card ${isDarkMode ? 'dark' : 'light'}`}>      <div className="card-left">
+    <div className={`card ${isDarkMode ? 'dark' : 'light'}`}>
+      <div className="card-left">
         <button
           className={`btn ${getButtonClass()}`}
           onClick={handleAction}
@@ -83,8 +96,15 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         <p>Version: {chain.version}</p>
       </div>
       <div className="card-right">
-        <button className="btn settings">Settings</button>
+        <button className="btn settings" onClick={() => setShowSettings(true)}>Settings</button>
       </div>
+      {showSettings && (
+        <ChainSettingsModal
+          chain={chain}
+          onClose={() => setShowSettings(false)}
+          onOpenDataDir={handleOpenDataDir}
+        />
+      )}
     </div>
   );
 };

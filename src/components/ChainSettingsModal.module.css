@@ -1,0 +1,123 @@
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modalContent {
+    background-color: #f0f0f0;
+    padding: 24px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .modalContent {
+    background-color: #333333;
+    color: #ffffff;
+  }
+  
+  .modalTitle {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333333;
+  }
+  
+  .dark .modalTitle {
+    color: #ffffff;
+  }
+  
+  .infoGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .infoItem {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .infoLabel {
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #555555;
+  }
+  
+  .dark .infoLabel {
+    color: #aaaaaa;
+  }
+  
+  .infoValue {
+    color: #333333;
+  }
+  
+  .dark .infoValue {
+    color: #ffffff;
+  }
+  
+  .repoLink {
+    color: #4CAF50;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  
+  .repoLink:hover {
+    text-decoration: underline;
+  }
+  
+  .dirButton {
+    display: inline-flex;
+    align-items: center;
+    background-color: transparent;
+    border: none;
+    color: #4CAF50;
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+  
+  .dirButton:hover {
+    color: #45a049;
+  }
+  
+  .dirButton svg {
+    margin-right: 8px;
+  }
+  
+  .closeButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    font-size: 16px;
+    margin-top: 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 100%;
+    transition: background-color 0.3s ease;
+  }
+  
+  .closeButton:hover {
+    background-color: #45a049;
+  }
+  
+  .dark .closeButton {
+    background-color: #45a049;
+  }
+  
+  .dark .closeButton:hover {
+    background-color: #4CAF50;
+  }

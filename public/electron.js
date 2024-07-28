@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { promises: fsPromises } = fs;
@@ -353,6 +353,8 @@ app.whenReady().then(async () => {
     }
   });
 
+
+
   ipcMain.handle('get-chain-status', async (event, chainId) => {
     const chain = config.chains.find(c => c.id === chainId);
     if (!chain) throw new Error('Chain not found');
@@ -374,6 +376,22 @@ app.whenReady().then(async () => {
       ...download
     }));
   });
+});
+
+ipcMain.handle('open-data-dir', async (event, chainId) => {
+  const chain = config.chains.find(c => c.id === chainId);
+  if (!chain) throw new Error('Chain not found');
+
+  const homeDir = app.getPath('home');
+  const baseDir = path.join(homeDir, chain.directories.base[process.platform]);
+  
+  try {
+    await shell.openPath(baseDir);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to open data directory:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 app.on('window-all-closed', () => {
