@@ -261,7 +261,7 @@ function createWindow() {
         preload: path.join(__dirname, 'preload.js')
       },
     });
-
+    mainWindow.setMenu(null);
     mainWindow.loadURL(
       isDev
         ? 'http://localhost:3000'
