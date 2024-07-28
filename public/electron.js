@@ -30,31 +30,32 @@ class DownloadManager {
 
   async downloadAndExtract(chainId, url, basePath) {
     const zipPath = path.join(basePath, `temp_${chainId}.zip`);
-
+  
     try {
       console.log(`Starting download for ${chainId} from ${url}`);
       await this.downloadFile(chainId, url, zipPath);
       console.log(`Download completed for ${chainId}. File saved at ${zipPath}`);
-
-      console.log(`Verifying zip file for ${chainId}`);
+  
+      console.log(`Starting zip verification for ${chainId}`);
       await this.verifyZip(zipPath);
-      console.log(`Zip file verified for ${chainId}`);
-
-      console.log(`Starting extraction for ${chainId}`);
+      console.log(`Zip verification completed successfully for ${chainId}`);
+  
+      console.log(`Preparing to start extraction for ${chainId}`);
       await this.extractZip(chainId, zipPath, basePath);
       console.log(`Extraction completed for ${chainId}`);
-
+  
       await fsPromises.unlink(zipPath);
       console.log(`Temporary zip file deleted for ${chainId}`);
-
+  
       this.activeDownloads.delete(chainId);
       this.sendDownloadsUpdate();
       mainWindow.webContents.send('download-complete', { chainId });
     } catch (error) {
       console.error(`Error processing ${chainId}:`, error);
+      console.error(`Error stack: ${error.stack}`);
       this.activeDownloads.delete(chainId);
       this.sendDownloadsUpdate();
-      mainWindow.webContents.send('download-error', { chainId, error: error.message });
+      mainWindow.webContents.send('download-error', { chainId, error: error.message, stack: error.stack });
       
       try {
         await fsPromises.unlink(zipPath);
@@ -105,6 +106,7 @@ class DownloadManager {
 
   async verifyZip(zipPath) {
     return new Promise((resolve, reject) => {
+      console.log(`Starting zip verification for: ${zipPath}`);
       const readStream = fs.createReadStream(zipPath);
       readStream.on('error', (error) => {
         console.error(`Error reading zip file: ${error.message}`);
@@ -123,26 +125,31 @@ class DownloadManager {
         for (let signature of possibleSignatures) {
           if (chunk.includes(signature)) {
             foundSignature = true;
-            break;
+            console.log('ZIP signature found');
+            readStream.destroy(); // Stop reading if we found a signature
+            resolve(); // Resolve the promise here
+            return;
           }
-        }
-        if (foundSignature) {
-          readStream.destroy(); // Stop reading if we found a signature
         }
       });
   
       readStream.on('end', () => {
         console.log(`Zip file read complete. Total bytes: ${byteCount}`);
-        if (foundSignature) {
-          console.log('ZIP signature found');
-          resolve();
-        } else {
+        if (!foundSignature) {
           console.error('No valid ZIP signature found');
           reject(new Error('Invalid or incomplete file: No ZIP signature found'));
         }
       });
+  
+      readStream.on('close', () => {
+        console.log('Read stream closed');
+        if (!foundSignature) {
+          reject(new Error('Read stream closed without finding a valid ZIP signature'));
+        }
+      });
     });
   }
+
   async extractZip(chainId, zipPath, basePath) {
     this.updateDownloadProgress(chainId, 100, 'extracting');
     return new Promise((resolve, reject) => {
