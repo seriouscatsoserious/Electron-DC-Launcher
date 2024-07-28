@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
+import './scrollbar.css';
 import NavBar from './components/NavBar';
 import Nodes from './components/Nodes';
 import Wallet from './components/Wallet';
@@ -12,9 +13,13 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 function AppContent() {
   const { isDarkMode } = useTheme();
 
+  useEffect(() => {
+    document.body.className = isDarkMode ? 'dark' : 'light';
+  }, [isDarkMode]);
+
   return (
     <Router>
-      <div className={`App ${isDarkMode ? 'dark' : 'light'}`}>
+      <div className="App">
         <NavBar />
         <Routes>
           <Route path="/" element={<Nodes />} />

@@ -25,7 +25,7 @@
   text-decoration: none;
   padding: 5px 10px;
   border-radius: 4px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .navLink:hover, .navLink.active {
@@ -38,4 +38,16 @@
 
 :global(.light) .navLink {
   color: #333333;
+}
+
+:global(.light) .navLink:hover, 
+:global(.light) .navLink.active {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000000;
+}
+
+:global(.dark) .navLink:hover, 
+:global(.dark) .navLink.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
