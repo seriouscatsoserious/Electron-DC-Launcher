@@ -25,11 +25,17 @@
   text-decoration: none;
   padding: 5px 10px;
   border-radius: 4px;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
+  font-weight: 400;
 }
 
-.navLink:hover, .navLink.active {
+.navLink:hover {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navLink.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  text-shadow: 0 0 1px currentColor;
 }
 
 :global(.light) .nav {
@@ -40,14 +46,20 @@
   color: #333333;
 }
 
-:global(.light) .navLink:hover, 
-:global(.light) .navLink.active {
+:global(.light) .navLink:hover {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+:global(.light) .navLink.active {
+  background-color: rgba(0, 0, 0, 0.1);
   color: #000000;
 }
 
-:global(.dark) .navLink:hover, 
-:global(.dark) .navLink.active {
+:global(.dark) .navLink:hover {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark) .navLink.active {
+  background-color: rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }

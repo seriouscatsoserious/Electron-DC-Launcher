@@ -7,11 +7,57 @@ const NavBar = () => {
   return (
     <nav className={styles.nav}>
       <ul className={styles.navList}>
-        <li><NavLink to="/" end className={styles.navLink}>Nodes</NavLink></li>
-        <li><NavLink to="/wallet" className={styles.navLink}>Wallet</NavLink></li>
-        <li><NavLink to="/tools" className={styles.navLink}>Tools</NavLink></li>
-        <li><NavLink to="/settings" className={styles.navLink}>Settings</NavLink></li>
-        <li><NavLink to="/other" className={styles.navLink}>Other</NavLink></li>
+        <li>
+          <NavLink 
+            to="/" 
+            end 
+            className={({ isActive }) => 
+              `${styles.navLink} ${isActive ? styles.active : ''}`
+            }
+          >
+            Nodes
+          </NavLink>
+        </li>
+        <li>
+          <NavLink 
+            to="/wallet" 
+            className={({ isActive }) => 
+              `${styles.navLink} ${isActive ? styles.active : ''}`
+            }
+          >
+            Wallet
+          </NavLink>
+        </li>
+        <li>
+          <NavLink 
+            to="/tools" 
+            className={({ isActive }) => 
+              `${styles.navLink} ${isActive ? styles.active : ''}`
+            }
+          >
+            Tools
+          </NavLink>
+        </li>
+        <li>
+          <NavLink 
+            to="/settings" 
+            className={({ isActive }) => 
+              `${styles.navLink} ${isActive ? styles.active : ''}`
+            }
+          >
+            Settings
+          </NavLink>
+        </li>
+        <li>
+          <NavLink 
+            to="/other" 
+            className={({ isActive }) => 
+              `${styles.navLink} ${isActive ? styles.active : ''}`
+            }
+          >
+            Other
+          </NavLink>
+        </li>
       </ul>
       <ThemeToggle />
     </nav>
