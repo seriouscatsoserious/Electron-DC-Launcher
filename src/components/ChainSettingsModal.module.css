@@ -41,6 +41,11 @@
     gap: 16px;
   }
   
+  .infoGrid p {
+    margin: 0;
+    word-break: break-word;
+  }
+  
   .infoItem {
     display: flex;
     flex-direction: column;
@@ -65,26 +70,27 @@
     color: #333333;
   }
   
-  .repoLink {
-    color: #ffffff;
+  .link {
+    color: #4a90e2;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 4px;
   }
   
-  .light .repoLink {
-    color: #333333;
+  .light .link {
+    color: #0066cc;
   }
   
-  .repoLink:hover {
+  .link:hover {
     text-decoration: underline;
   }
   
-  .dirContainer {
+  .dataDir {
     display: flex;
     align-items: center;
     gap: 8px;
+    word-break: break-all;
   }
   
   .dirButton {
@@ -96,6 +102,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
   
   .light .dirButton {
