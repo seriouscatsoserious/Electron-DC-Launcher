@@ -25,39 +25,46 @@ const DownloadModal = () => {
     setTimeout(() => {
       dispatch(hideDownloadModal());
       setIsClosing(false);
-    }, 300); // Duration of fade-out animation
+    }, 300);
   }, [dispatch]);
 
-  const handleClickOutside = useCallback((event) => {
-    if (modalRef.current && !modalRef.current.contains(event.target)) {
-      closeModal();
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
     }
+    timerRef.current = setTimeout(closeModal, FADE_DELAY);
   }, [closeModal]);
 
   useEffect(() => {
     if (isVisible) {
-      // Clear any existing timer
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-
-      // Set a new timer if there are no active downloads
-      if (activeDownloads.length === 0) {
-        timerRef.current = setTimeout(closeModal, FADE_DELAY);
-      }
-
-      // Add click outside listener
-      document.addEventListener('mousedown', handleClickOutside);
+      resetTimer();
+      
+      const handleOutsideClick = (event) => {
+        if (modalRef.current && !modalRef.current.contains(event.target)) {
+          closeModal();
+        }
+      };
+      document.addEventListener('mousedown', handleOutsideClick);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleOutsideClick);
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+      };
     }
+  }, [isVisible, resetTimer, closeModal]);
 
-    // Cleanup function
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isVisible, activeDownloads.length, closeModal, handleClickOutside]);
+  // Reset timer when downloads change
+  useEffect(() => {
+    if (isVisible) {
+      resetTimer();
+    }
+  }, [downloads, isVisible, resetTimer]);
+
+  const handleInteraction = useCallback(() => {
+    resetTimer();
+  }, [resetTimer]);
 
   if (!isVisible && !isClosing) return null;
 
@@ -65,12 +72,20 @@ const DownloadModal = () => {
     <div
       ref={modalRef}
       className={`${styles.downloadModal} ${isDarkMode ? styles.dark : styles.light} ${isClosing ? styles.fadeOut : styles.fadeIn}`}
+      onMouseEnter={handleInteraction}
+      onMouseMove={handleInteraction}
+      onClick={handleInteraction}
     >
       <div className={styles.downloadModalContent}>
         <h2>Downloads</h2>
         {activeDownloads.length > 0 ? (
           activeDownloads.map(([chainId, download]) => (
-            <DownloadItem key={chainId} chainId={chainId} {...download} />
+            <DownloadItem
+              key={chainId}
+              chainName={download.displayName}
+              status={download.status}
+              progress={download.progress}
+            />
           ))
         ) : (
           <p>No active downloads</p>

@@ -187,14 +187,19 @@ class DownloadManager {
 
   sendDownloadsUpdate() {
     if (mainWindow) {
-      const downloadsArray = Array.from(this.activeDownloads.entries()).map(([chainId, download]) => ({
-        chainId,
-        ...download
-      }));
+      const downloadsArray = Array.from(this.activeDownloads.entries()).map(([chainId, download]) => {
+        const chain = config.chains.find(c => c.id === chainId);
+        return {
+          chainId,
+          displayName: chain ? chain.display_name : chainId,
+          ...download
+        };
+      });
       mainWindow.webContents.send('downloads-update', downloadsArray);
     }
   }
 }
+
 
 const downloadManager = new DownloadManager();
 

@@ -6,7 +6,11 @@ const downloadSlice = createSlice({
   reducers: {
     updateDownloads: (state, action) => {
       action.payload.forEach(download => {
-        state[download.chainId] = download;
+        state[download.chainId] = {
+          status: download.status,
+          progress: download.progress,
+          displayName: download.displayName
+        };
       });
       // Remove completed downloads
       Object.keys(state).forEach(chainId => {

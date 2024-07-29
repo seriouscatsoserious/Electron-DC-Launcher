@@ -18,6 +18,7 @@
   gap: 20px;
   padding: 0;
   margin: 0;
+  align-items: center;
 }
 
 .navLink {
@@ -27,6 +28,7 @@
   border-radius: 4px;
   transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
   font-weight: 400;
+  
 }
 
 .navLink:hover {
@@ -41,7 +43,7 @@
 .iconContainer {
   display: flex;
   align-items: center;
-  gap: 10px; 
+  gap: 16px; 
 }
 
 .iconWrapper {
@@ -50,6 +52,11 @@
   justify-content: center;
   width: 24px; 
   height: 24px;
+}
+
+.iconWrapper svg {
+  width: 20px;
+  height: 20px;
 }
 
 :global(.light) .nav {
