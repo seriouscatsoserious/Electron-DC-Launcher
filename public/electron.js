@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { promises: fsPromises } = fs;
@@ -152,6 +152,7 @@ class DownloadManager {
 
   async extractZip(chainId, zipPath, basePath) {
     this.updateDownloadProgress(chainId, 100, 'extracting');
+    mainWindow.webContents.send('chain-status-update', { chainId, status: 'extracting' });
     return new Promise((resolve, reject) => {
       try {
         console.log(`Creating AdmZip instance for ${zipPath}`);
@@ -260,7 +261,7 @@ function createWindow() {
         preload: path.join(__dirname, 'preload.js')
       },
     });
-
+    // mainWindow.setMenu(null);
     mainWindow.loadURL(
       isDev
         ? 'http://localhost:3000'
@@ -271,6 +272,10 @@ function createWindow() {
       mainWindow = null;
     });
   }
+}
+
+function getChainConfig(chainId) {
+  return config.chains.find(c => c.id === chainId);
 }
 
 app.whenReady().then(async () => {
@@ -292,6 +297,15 @@ app.whenReady().then(async () => {
   
     downloadManager.startDownload(chainId, url, baseDir);
     return { success: true };
+  });
+
+  ipcMain.handle('get-full-data-dir', async (event, chainId) => {
+    const chain = getChainConfig(chainId);
+    if (!chain) throw new Error('Chain not found');
+    const platform = process.platform;
+    const baseDir = chain.directories.base[platform];
+    const fullPath = path.join(app.getPath('home'), baseDir);
+    return fullPath;
   });
 
   ipcMain.handle('start-chain', async (event, chainId) => {
@@ -352,6 +366,8 @@ app.whenReady().then(async () => {
     }
   });
 
+
+
   ipcMain.handle('get-chain-status', async (event, chainId) => {
     const chain = config.chains.find(c => c.id === chainId);
     if (!chain) throw new Error('Chain not found');
@@ -373,6 +389,22 @@ app.whenReady().then(async () => {
       ...download
     }));
   });
+});
+
+ipcMain.handle('open-data-dir', async (event, chainId) => {
+  const chain = config.chains.find(c => c.id === chainId);
+  if (!chain) throw new Error('Chain not found');
+
+  const homeDir = app.getPath('home');
+  const baseDir = path.join(homeDir, chain.directories.base[process.platform]);
+  
+  try {
+    await shell.openPath(baseDir);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to open data directory:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 app.on('window-all-closed', () => {

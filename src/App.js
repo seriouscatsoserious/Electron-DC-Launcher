@@ -1,26 +1,26 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, NavLink, Routes } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
+import './scrollbar.css';
+import NavBar from './components/NavBar';
 import Nodes from './components/Nodes';
 import Wallet from './components/Wallet';
 import Tools from './components/Tools';
 import Settings from './components/Settings';
 import Other from './components/Other';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
-function App() {
+function AppContent() {
+  const { isDarkMode } = useTheme();
+
+  useEffect(() => {
+    document.body.className = isDarkMode ? 'dark' : 'light';
+  }, [isDarkMode]);
+
   return (
     <Router>
       <div className="App">
-        <nav>
-          <ul>
-            <li><NavLink to="/" end>Nodes</NavLink></li>
-            <li><NavLink to="/wallet">Wallet</NavLink></li>
-            <li><NavLink to="/tools">Tools</NavLink></li>
-            <li><NavLink to="/settings">Settings</NavLink></li>
-            <li><NavLink to="/other">Other</NavLink></li>
-          </ul>
-        </nav>
-
+        <NavBar />
         <Routes>
           <Route path="/" element={<Nodes />} />
           <Route path="/wallet" element={<Wallet />} />
@@ -30,6 +30,14 @@ function App() {
         </Routes>
       </div>
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

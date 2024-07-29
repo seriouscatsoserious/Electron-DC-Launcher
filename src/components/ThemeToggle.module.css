@@ -1,0 +1,23 @@
+.themeToggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+  }
+  
+  .themeToggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  :global(.light) .themeToggle {
+    color: #333;
+  }
+  
+  :global(.dark) .themeToggle {
+    color: #fff;
+  }

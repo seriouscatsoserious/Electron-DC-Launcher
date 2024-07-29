@@ -1,0 +1,79 @@
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(44, 44, 44, 0.8);
+  backdrop-filter: blur(5px);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1000;
+}
+
+.navList {
+  list-style: none;
+  display: flex;
+  gap: 20px;
+  padding: 0;
+  margin: 0;
+}
+
+.navLink {
+  color: #ffffff;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
+  font-weight: 400;
+}
+
+.navLink:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navLink.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  text-shadow: 0 0 1px currentColor;
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px; 
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; 
+  height: 24px;
+}
+
+:global(.light) .nav {
+  background-color: rgba(248, 248, 248, 0.8);
+}
+
+:global(.light) .navLink {
+  color: #333333;
+}
+
+:global(.light) .navLink:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+:global(.light) .navLink.active {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #000000;
+}
+
+:global(.dark) .navLink:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark) .navLink.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}

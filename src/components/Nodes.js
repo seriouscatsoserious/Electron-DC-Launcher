@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import Card from './Card';
 import DownloadModal from './DownloadModal';
 import { updateDownloads } from '../store/downloadSlice';
+import { showDownloadModal } from '../store/downloadModalSlice';
 
 function Nodes() {
   const [chains, setChains] = useState([]);
@@ -71,11 +72,11 @@ function Nodes() {
       console.log(`Attempting to download chain ${chainId}`);
       await window.electronAPI.downloadChain(chainId);
       console.log(`Download initiated for chain ${chainId}`);
+      dispatch(showDownloadModal());
     } catch (error) {
       console.error(`Failed to start download for chain ${chainId}:`, error);
     }
-  }, []);
-
+  }, [dispatch]);
   const handleStartChain = useCallback(async (chainId) => {
     try {
       await window.electronAPI.startChain(chainId);

@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startChain: (chainId) => ipcRenderer.invoke('start-chain', chainId),
   stopChain: (chainId) => ipcRenderer.invoke('stop-chain', chainId),
   getChainStatus: (chainId) => ipcRenderer.invoke('get-chain-status', chainId),
+  openDataDir: (chainId) => ipcRenderer.invoke('open-data-dir', chainId),
+  getFullDataDir: (chainId) => ipcRenderer.invoke('get-full-data-dir', chainId),
   onDownloadsUpdate: (callback) => {
     const subscription = (event, data) => callback(data);
     ipcRenderer.on('downloads-update', subscription);
