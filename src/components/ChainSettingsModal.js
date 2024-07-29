@@ -1,63 +1,73 @@
-import React, { useState, useEffect } from 'react';
+// ChainSettingsModal.js
+import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import styles from './ChainSettingsModal.module.css';
-import { X, FolderOpen, ExternalLink } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFolderOpen as faFolderOpenRegular } from '@fortawesome/free-regular-svg-icons';
 
 const ChainSettingsModal = ({ chain, onClose, onOpenDataDir }) => {
   const { isDarkMode } = useTheme();
-  const [fullPath, setFullPath] = useState('');
-
-  useEffect(() => {
-    const getFullPath = async () => {
-      try {
-        const path = await window.electronAPI.getFullDataDir(chain.id);
-        setFullPath(path);
-      } catch (error) {
-        console.error('Failed to get full data directory path:', error);
-        setFullPath('Path not available');
-      }
-    };
-    getFullPath();
-  }, [chain.id]);
-
-  const handleOpenDataDir = () => {
-    onOpenDataDir(chain.id);
-  };
 
   const handleOpenRepo = (e) => {
     e.preventDefault();
     window.open(chain.repo_url, '_blank', 'noopener,noreferrer');
   };
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className={`${styles.modalOverlay} ${isDarkMode ? styles.dark : styles.light}`}>
+    <div className={`${styles.modalOverlay} ${isDarkMode ? styles.dark : styles.light}`} onClick={handleOverlayClick}>
       <div className={styles.modalContent}>
-        <button className={styles.closeButton} onClick={onClose}>
-          <X size={20} />
-        </button>
-        <h2 className={styles.modalTitle}>{chain.display_name} Settings</h2>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>{chain.display_name} Settings</h2>
+          <button className={styles.closeButton} onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
         <div className={styles.infoGrid}>
-          <p><strong>ID:</strong> {chain.id}</p>
-          <p><strong>Version:</strong> {chain.version}</p>
-          <p><strong>Description:</strong> {chain.description}</p>
-          <p>
-            <strong>Repository:</strong>
+          <div className={styles.infoRow}>
+            <span className={styles.label}>ID:</span>
+            <span>{chain.id}</span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.label}>Version:</span>
+            <span>{chain.version}</span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.label}>Repository:</span>
             <a href={chain.repo_url} onClick={handleOpenRepo} className={styles.link}>
-              {chain.repo_url} <ExternalLink size={14} />
+              {chain.repo_url}
+              <ExternalLink size={14} className={styles.externalIcon} />
             </a>
-          </p>
-          <p><strong>Network Port:</strong> {chain.network.port}</p>
-          <p><strong>Chain Type:</strong> {chain.chain_type === 0 ? 'Mainchain' : 'Sidechain'}</p>
-          {chain.chain_type !== 0 && <p><strong>Slot:</strong> {chain.slot}</p>}
-          <p>
-            <strong>Data Directory:</strong>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.label}>Network Port:</span>
+            <span>{chain.network.port}</span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.label}>Chain Type:</span>
+            <span>{chain.chain_type === 0 ? 'Mainchain' : 'Sidechain'}</span>
+          </div>
+          {chain.chain_type !== 0 && (
+            <div className={styles.infoRow}>
+              <span className={styles.label}>Slot:</span>
+              <span>{chain.slot}</span>
+            </div>
+          )}
+          <div className={styles.infoRow}>
+            <span className={styles.label}>Data Directory:</span>
             <span className={styles.dataDir}>
-              {fullPath}
-              <button className={styles.dirButton} onClick={handleOpenDataDir} title="Open data directory">
-                <FolderOpen size={16} />
+              {chain.dataDir}
+              <button className={styles.dirButton} onClick={() => onOpenDataDir(chain.id)} title="Open data directory">
+                <FontAwesomeIcon icon={faFolderOpenRegular} size="sm" />
               </button>
             </span>
-          </p>
+          </div>
         </div>
       </div>
     </div>

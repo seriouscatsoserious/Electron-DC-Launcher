@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import ChainSettingsModal from './ChainSettingsModal';
 
 const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
   const { isDarkMode } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
-
+  const [fullChainData, setFullChainData] = useState(chain); // State to store full chain data
 
   const handleAction = async () => {
     switch (chain.status) {
@@ -37,6 +37,16 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         break;
     }
   };
+
+  const handleOpenSettings = useCallback(async () => {
+    try {
+      const fullDataDir = await window.electronAPI.getFullDataDir(chain.id);
+      setFullChainData({ ...chain, dataDir: fullDataDir });
+      setShowSettings(true);
+    } catch (error) {
+      console.error('Failed to fetch full data directory:', error);
+    }
+  }, [chain]);
 
   const handleOpenDataDir = async (chainId) => {
     try {
@@ -96,11 +106,11 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         <p>Version: {chain.version}</p>
       </div>
       <div className="card-right">
-        <button className="btn settings" onClick={() => setShowSettings(true)}>Settings</button>
+        <button className="btn settings" onClick={handleOpenSettings}>Settings</button>
       </div>
       {showSettings && (
         <ChainSettingsModal
-          chain={chain}
+          chain={fullChainData}
           onClose={() => setShowSettings(false)}
           onOpenDataDir={handleOpenDataDir}
         />
