@@ -1,35 +1,80 @@
-import React, { useCallback, memo } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '../contexts/ThemeContext';
+import { hideDownloadModal } from '../store/downloadModalSlice';
+import DownloadItem from './DownloadItem';
+import styles from './DownloadModal.module.css';
 
-const ProgressBar = memo(({ progress }) => (
-  <div className="progress-bar-container">
-    <div
-      className="progress-bar"
-      style={{ width: `${progress}%` }}
-    ></div>
-  </div>
-));
-
-const DownloadItem = memo(({ chainId, status, progress }) => (
-  <div className="download-item">
-    <p>{chainId}: {status} - {progress.toFixed(2)}%</p>
-    <ProgressBar progress={progress} />
-  </div>
-));
+const FADE_DELAY = 5000; // 5 seconds
 
 const DownloadModal = () => {
-  const downloads = useSelector(useCallback(state => state.downloads, []));
+  const downloads = useSelector(state => state.downloads);
+  const isVisible = useSelector(state => state.downloadModal.isVisible);
+  const dispatch = useDispatch();
   const { isDarkMode } = useTheme();
-  
-  if (Object.keys(downloads).length === 0) return null;
+  const [isClosing, setIsClosing] = useState(false);
+  const timerRef = useRef(null);
+  const modalRef = useRef(null);
+
+  const activeDownloads = Object.entries(downloads).filter(([_, download]) =>
+    download.status === 'downloading' || download.status === 'extracting'
+  );
+
+  const closeModal = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      dispatch(hideDownloadModal());
+      setIsClosing(false);
+    }, 300); // Duration of fade-out animation
+  }, [dispatch]);
+
+  const handleClickOutside = useCallback((event) => {
+    if (modalRef.current && !modalRef.current.contains(event.target)) {
+      closeModal();
+    }
+  }, [closeModal]);
+
+  useEffect(() => {
+    if (isVisible) {
+      // Clear any existing timer
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      // Set a new timer if there are no active downloads
+      if (activeDownloads.length === 0) {
+        timerRef.current = setTimeout(closeModal, FADE_DELAY);
+      }
+
+      // Add click outside listener
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    // Cleanup function
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, activeDownloads.length, closeModal, handleClickOutside]);
+
+  if (!isVisible && !isClosing) return null;
 
   return (
-    <div className={`download-modal ${isDarkMode ? 'dark' : 'light'}`}>      <div className="download-modal-content">
+    <div
+      ref={modalRef}
+      className={`${styles.downloadModal} ${isDarkMode ? styles.dark : styles.light} ${isClosing ? styles.fadeOut : styles.fadeIn}`}
+    >
+      <div className={styles.downloadModalContent}>
         <h2>Downloads</h2>
-        {Object.entries(downloads).map(([chainId, download]) => (
-          <DownloadItem key={chainId} chainId={chainId} {...download} />
-        ))}
+        {activeDownloads.length > 0 ? (
+          activeDownloads.map(([chainId, download]) => (
+            <DownloadItem key={chainId} chainId={chainId} {...download} />
+          ))
+        ) : (
+          <p>No active downloads</p>
+        )}
       </div>
     </div>
   );

@@ -38,6 +38,20 @@
   text-shadow: 0 0 1px currentColor;
 }
 
+.iconContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px; 
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; 
+  height: 24px;
+}
+
 :global(.light) .nav {
   background-color: rgba(248, 248, 248, 0.8);
 }
