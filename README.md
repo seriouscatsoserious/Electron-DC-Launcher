@@ -2,7 +2,7 @@
 
 ## Overview
 
-Electron Drivechain Launcher is a desktop application that simplifies the management of Bitcoin and Drivechains. Built with Electron and React, it provides an easy-to-use interface for interacting with multiple blockchain networks. The choice of Electron was to facilitate open source contributions.
+Electron Drivechain Launcher is a desktop application that simplifies the management of Bitcoin and Drivechains. Built with Electron and React, it provides an easy-to-use interface for interacting with multiple blockchain networks.
 
 ## Key Features
 
