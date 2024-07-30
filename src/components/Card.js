@@ -104,7 +104,7 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         </button>
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
-        <p>Version: {chain.version}</p>
+        {/* <p className="version">Version: {chain.version}</p> */}
       </div>
       <div className="card-right">
         <button className="btn settings" onClick={handleOpenSettings}>Settings</button>

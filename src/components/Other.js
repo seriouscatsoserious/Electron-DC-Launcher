@@ -32,11 +32,7 @@ function Other() {
   return (
     <div className="Other">
       <h1>Other</h1>
-      <h2>Chain Information</h2>
-      <p>Chain Name: {chainInfo.display_name}</p>
-      <p>Description: {chainInfo.description}</p>
-      <p>Version: {chainInfo.version}</p>
-      <p>Repository: <a href={chainInfo.repo_url} target="_blank" rel="noopener noreferrer">{chainInfo.repo_url}</a></p>
+      <p>This is a placeholder for the Other component.</p>
     </div>
   );
 }

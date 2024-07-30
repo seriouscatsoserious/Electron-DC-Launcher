@@ -5,7 +5,7 @@ import { hideDownloadModal, showDownloadModal } from '../store/downloadModalSlic
 import DownloadItem from './DownloadItem';
 import styles from './DownloadModal.module.css';
 
-const FADE_DELAY = 5000; // 5 seconds
+const FADE_DELAY = 7000; // 5 seconds
 
 const DownloadModal = () => {
   const downloads = useSelector(state => state.downloads);

@@ -2,9 +2,9 @@
 import React from 'react';
 import styles from './DownloadModal.module.css';
 
-const DownloadItem = ({ chainId, status, progress }) => (
+const DownloadItem = ({ chainId, displayName, status, progress }) => (
   <div className={styles.downloadItem}>
-    <p>{chainId}: {status} - {progress.toFixed(2)}%</p>
+    <p>{displayName}: {status} - {progress.toFixed(2)}%</p>
     <div className={styles.progressBarContainer}>
       <div
         className={styles.progressBar}
