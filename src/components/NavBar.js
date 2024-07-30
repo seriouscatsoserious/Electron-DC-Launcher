@@ -60,7 +60,7 @@ const NavBar = () => {
           </NavLink>
         </li>
       </ul>
-      <div className={styles.iconContainer}>
+      <div className={styles.iconWrapper}>
         <DownloadIcon />
         <ThemeToggle />
       </div>

@@ -1,6 +1,6 @@
-// src/components/DownloadItem.js
 import React from 'react';
 import styles from './DownloadModal.module.css';
+
 
 const DownloadItem = ({ chainId, displayName, status, progress }) => (
   <div className={styles.downloadItem}>

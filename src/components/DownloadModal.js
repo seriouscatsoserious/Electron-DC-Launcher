@@ -25,7 +25,7 @@ const DownloadModal = () => {
     setTimeout(() => {
       dispatch(hideDownloadModal());
       setIsClosing(false);
-    }, 300); // Duration of fade-out animation
+    }, 300);
   }, [dispatch]);
 
   const resetTimer = useCallback(() => {
@@ -43,6 +43,7 @@ const DownloadModal = () => {
     ) {
       closeModal();
     }
+    timerRef.current = setTimeout(closeModal, FADE_DELAY);
   }, [closeModal]);
 
   useEffect(() => {
@@ -93,12 +94,18 @@ const DownloadModal = () => {
       className={`${styles.downloadModal} ${isDarkMode ? styles.dark : styles.light} ${isClosing ? styles.fadeOut : styles.fadeIn}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+
     >
       <div className={styles.downloadModalContent}>
         <h2>Downloads</h2>
         {activeDownloads.length > 0 ? (
           activeDownloads.map(([chainId, download]) => (
-            <DownloadItem key={chainId} chainId={chainId} {...download} />
+            <DownloadItem
+              key={chainId}
+              chainName={download.displayName}
+              status={download.status}
+              progress={download.progress}
+            />
           ))
         ) : (
           <p>No active downloads</p>
