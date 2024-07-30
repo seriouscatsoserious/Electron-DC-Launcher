@@ -18,7 +18,7 @@ const DownloadIcon = () => {
 
   return (
     <div className={`${styles.iconWrapper} ${styles.downloadIcon}`} onClick={handleClick}>
-    <Download size={20} />
+    <Download size={18} />
       {activeDownloads.length > 0 && (
         <div className={styles.progressIndicator} style={{ '--progress': `${averageProgress}%` }} />
       )}
