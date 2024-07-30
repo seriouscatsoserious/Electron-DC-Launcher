@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Download } from 'lucide-react';
+import { HiOutlineDownload } from 'react-icons/hi';
 import { showDownloadModal } from '../store/downloadModalSlice';
 import styles from './DownloadIcon.module.css';
 
@@ -17,12 +17,12 @@ const DownloadIcon = () => {
   };
 
   return (
-    <div className={`${styles.iconWrapper} ${styles.downloadIcon}`} onClick={handleClick}>
-    <Download size={18} />
+    <button onClick={handleClick} className={`${styles.iconWrapper} ${styles.downloadIcon}`}>
+      <HiOutlineDownload size={20} />
       {activeDownloads.length > 0 && (
         <div className={styles.progressIndicator} style={{ '--progress': `${averageProgress}%` }} />
       )}
-    </div>
+    </button>
   );
 };
 

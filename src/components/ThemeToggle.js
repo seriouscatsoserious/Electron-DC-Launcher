@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { Moon, Sun } from 'lucide-react';
+import { HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
 import styles from './ThemeToggle.module.css';
 
 const ThemeToggle = () => {
@@ -8,8 +8,8 @@ const ThemeToggle = () => {
 
   return (
     <button onClick={toggleTheme} className={`${styles.iconWrapper} ${styles.themeToggle}`}>
-    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-  </button>
+      {isDarkMode ? <HiOutlineSun size={20} /> : <HiOutlineMoon size={20} />}
+    </button>
   );
 };
 
