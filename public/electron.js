@@ -2,12 +2,10 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { promises: fsPromises } = fs;
-const util = require('util');
 const isDev = require('electron-is-dev');
 const { spawn } = require('child_process');
 const AdmZip = require('adm-zip');
 const axios = require('axios');
-const { pipeline } = require('stream').promises;
 
 // Load configuration
 const configPath = path.join(__dirname, 'chain_config.json');
@@ -37,16 +35,12 @@ class DownloadManager {
       await this.downloadFile(chainId, url, zipPath);
       console.log(`Download completed for ${chainId}. File saved at ${zipPath}`);
   
-      console.log(`Starting zip verification for ${chainId}`);
       await this.verifyZip(zipPath);
-      console.log(`Zip verification completed successfully for ${chainId}`);
   
-      console.log(`Preparing to start extraction for ${chainId}`);
       await this.extractZip(chainId, zipPath, basePath);
       console.log(`Extraction completed for ${chainId}`);
   
       await fsPromises.unlink(zipPath);
-      console.log(`Temporary zip file deleted for ${chainId}`);
   
       this.activeDownloads.delete(chainId);
       this.sendDownloadsUpdate();
@@ -88,9 +82,7 @@ class DownloadManager {
   
         response.data.on('end', () => {
           writer.end();
-          console.log(`Download ended for ${chainId}. Total bytes: ${downloadedLength}`);
           if (downloadedLength === totalLength) {
-            console.log(`Download completed successfully for ${chainId}`);
             resolve();
           } else {
             reject(new Error(`Incomplete download: expected ${totalLength} bytes, got ${downloadedLength} bytes`));
@@ -107,7 +99,6 @@ class DownloadManager {
 
   async verifyZip(zipPath) {
     return new Promise((resolve, reject) => {
-      console.log(`Starting zip verification for: ${zipPath}`);
       const readStream = fs.createReadStream(zipPath);
       readStream.on('error', (error) => {
         console.error(`Error reading zip file: ${error.message}`);
@@ -126,7 +117,6 @@ class DownloadManager {
         for (let signature of possibleSignatures) {
           if (chunk.includes(signature)) {
             foundSignature = true;
-            console.log('ZIP signature found');
             readStream.destroy(); // Stop reading if we found a signature
             resolve(); // Resolve the promise here
             return;
@@ -143,7 +133,6 @@ class DownloadManager {
       });
   
       readStream.on('close', () => {
-        console.log('Read stream closed');
         if (!foundSignature) {
           reject(new Error('Read stream closed without finding a valid ZIP signature'));
         }
@@ -156,9 +145,7 @@ class DownloadManager {
     mainWindow.webContents.send('chain-status-update', { chainId, status: 'extracting' });
     return new Promise((resolve, reject) => {
       try {
-        console.log(`Creating AdmZip instance for ${zipPath}`);
         const zip = new AdmZip(zipPath);
-        console.log(`AdmZip instance created successfully for ${chainId}`);
         
         console.log(`Starting extraction to ${basePath} for ${chainId}`);
         zip.extractAllToAsync(basePath, true, (error) => {
@@ -166,7 +153,6 @@ class DownloadManager {
             console.error(`Extraction error for ${chainId}: ${error.message}`);
             reject(error);
           } else {
-            console.log(`Extraction completed successfully for ${chainId}`);
             resolve();
           }
         });
@@ -222,7 +208,6 @@ async function createDirectory(dirPath) {
   } catch (error) {
     if (error.code === 'ENOENT') {
       await fsPromises.mkdir(dirPath, { recursive: true });
-      console.log(`Created new directory: ${dirPath}`);
       return true; // New directory created
     } else {
       throw error;
@@ -253,8 +238,6 @@ async function setupChainDirectories() {
 
   if (directoriesCreated === 0) {
     console.log('All chain directories already exist. No new directories were created.');
-  } else {
-    console.log(`Created ${directoriesCreated} new chain directories.`);
   }
 }
 
