@@ -1,70 +1,97 @@
-# Getting Started with Create React App
+# Drivechain Launcher
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Drivechain Launcher is an Electron-based desktop application that allows users to manage and interact with various blockchain nodes, including the main Drivechain and its sidechains.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- Download and manage multiple blockchain nodes
+- Start and stop individual chains
+- Reset chain data
+- View chain details and settings
+- Dark/Light mode toggle
+- Cross-platform support (Windows, macOS, Linux)
 
-### `npm start`
+## Table of Contents
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. [Installation](#installation)
+2. [Usage](#usage)
+3. [Project Structure](#project-structure)
+4. [Development](#development)
+5. [Building](#building)
+6. [Contributing](#contributing)
+7. [License](#license)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Installation
 
-### `npm test`
+To install the Drivechain Launcher, follow these steps:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/drivechain-launcher.git
+   ```
+2. Navigate to the project directory:
+   ```
+   cd drivechain-launcher
+   ```
+3. Install dependencies:
+   ```
+   npm install
+   ```
 
-### `npm run build`
+## Usage
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+To run the application in development mode:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+npm start
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+This will start the Electron app and the React dev server.
 
-### `npm run eject`
+## Project Structure
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- `public/`: Contains the main Electron process files
+  - `electron.js`: Main Electron process
+  - `preload.js`: Preload script for IPC communication
+- `src/`: Contains React components and application logic
+  - `components/`: React components
+  - `contexts/`: React contexts (e.g., ThemeContext)
+  - `store/`: Redux store and slices
+- `chain_config.json`: Configuration file for supported chains
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Development
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The project uses React for the frontend and Electron for the desktop application wrapper. Key technologies and libraries include:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- React
+- Redux (with Redux Toolkit)
+- Electron
+- React Router
+- CSS Modules
 
-## Learn More
+To add a new feature or modify existing ones, locate the relevant component in the `src/components/` directory or the appropriate slice in `src/store/`.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Building
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+To build the application for production:
 
-### Code Splitting
+```
+npm run build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+This will create a production-ready build in the `build/` directory.
 
-### Analyzing the Bundle Size
+## Contributing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### Making a Progressive Web App
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## License
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```
