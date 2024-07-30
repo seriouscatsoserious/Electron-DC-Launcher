@@ -27,7 +27,7 @@ To install the Drivechain Launcher, follow these steps:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/drivechain-launcher.git
+   git clone https://github.com/seriouscatsoserious/drivechain-launcher.git
    ```
 2. Navigate to the project directory:
    ```
