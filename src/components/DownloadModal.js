@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '../contexts/ThemeContext';
-import { hideDownloadModal, showDownloadModal } from '../store/downloadModalSlice';
+import {
+  hideDownloadModal,
+  showDownloadModal,
+} from '../store/downloadModalSlice';
 import DownloadItem from './DownloadItem';
 import styles from './DownloadModal.module.css';
 
@@ -16,8 +19,9 @@ const DownloadModal = () => {
   const timerRef = useRef(null);
   const modalRef = useRef(null);
 
-  const activeDownloads = Object.entries(downloads).filter(([_, download]) =>
-    download.status === 'downloading' || download.status === 'extracting'
+  const activeDownloads = Object.entries(downloads).filter(
+    ([_, download]) =>
+      download.status === 'downloading' || download.status === 'extracting'
   );
 
   const closeModal = useCallback(() => {
@@ -35,15 +39,22 @@ const DownloadModal = () => {
     timerRef.current = setTimeout(closeModal, FADE_DELAY);
   }, [closeModal]);
 
-  const handleClickOutside = useCallback((event) => {
-    if (
-      modalRef.current && 
-      !modalRef.current.contains(event.target) &&
-      ![...document.querySelectorAll('[id^="download-button-"]')].some(el => el.contains(event.target))
-    ) {
-      closeModal();
-    }
-  }, [closeModal]);
+  const handleClickOutside = useCallback(
+    event => {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target) &&
+        ![
+          ...document.querySelectorAll(
+            '[id^="download-button-"], #theme-toggle-button'
+          ),
+        ].some(el => el.contains(event.target))
+      ) {
+        closeModal();
+      }
+    },
+    [closeModal]
+  );
 
   useEffect(() => {
     if (isVisible) {
@@ -56,7 +67,13 @@ const DownloadModal = () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [isVisible, activeDownloads.length, closeModal, handleClickOutside, resetTimer]);
+  }, [
+    isVisible,
+    activeDownloads.length,
+    closeModal,
+    handleClickOutside,
+    resetTimer,
+  ]);
 
   const handleMouseEnter = () => {
     if (timerRef.current) {

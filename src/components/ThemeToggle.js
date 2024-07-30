@@ -7,7 +7,11 @@ const ThemeToggle = () => {
   const { isDarkMode, toggleTheme } = useTheme();
 
   return (
-    <button onClick={toggleTheme} className={`${styles.iconWrapper} ${styles.themeToggle}`}>
+    <button
+      onClick={toggleTheme}
+      className={`${styles.iconWrapper} ${styles.themeToggle}`}
+      id="theme-toggle-button"
+    >
       {isDarkMode ? <HiOutlineSun size={20} /> : <HiOutlineMoon size={20} />}
     </button>
   );

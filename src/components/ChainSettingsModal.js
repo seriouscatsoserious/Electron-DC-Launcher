@@ -1,4 +1,3 @@
-// ChainSettingsModal.js
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import styles from './ChainSettingsModal.module.css';
@@ -81,7 +80,6 @@ const ChainSettingsModal = ({ chain, onClose, onOpenDataDir, onReset }) => {
               <span>{chain.slot}</span>
             </div>
           )}
-
           <div className={styles.infoRow}>
             <span className={styles.label}>Data Directory:</span>
             <span className={styles.dataDir}>
@@ -96,9 +94,14 @@ const ChainSettingsModal = ({ chain, onClose, onOpenDataDir, onReset }) => {
             </span>
           </div>
         </div>
-        <button onClick={handleResetChain} className={styles.resetButton}>
-          Reset Chain
-        </button>
+        <div className={styles.buttonContainer}>
+          <button
+            onClick={handleResetChain}
+            className={`btn ${styles.resetBtn}`}
+          >
+            Reset Chain
+          </button>
+        </div>
       </div>
     </div>
   );
