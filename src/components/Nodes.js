@@ -1,9 +1,12 @@
-// Nodes.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import Card from './Card';
 import DownloadModal from './DownloadModal';
-import { updateDownloads } from '../store/downloadSlice';
+import {
+  updateDownloads,
+  pauseDownload,
+  resumeDownload,
+} from '../store/downloadSlice';
 import { showDownloadModal } from '../store/downloadModalSlice';
 
 function Nodes() {
@@ -73,7 +76,6 @@ function Nodes() {
       downloadCompleteHandler
     );
 
-    // Initial downloads fetch
     window.electronAPI.getDownloads().then(downloadsUpdateHandler);
 
     return () => {
@@ -138,44 +140,29 @@ function Nodes() {
     }
   }, []);
 
-  const handleResetChain = useCallback(
+  const handlePauseDownload = useCallback(
     async chainId => {
-      const chain = chains.find(c => c.id === chainId);
-      if (chain.status === 'running') {
-        try {
-          await handleStopChain(chainId);
-        } catch (error) {
-          console.error(`Failed to stop chain ${chainId} before reset:`, error);
-          return;
-        }
-      }
-
       try {
-        await window.electronAPI.resetChain(chainId);
+        await window.electronAPI.pauseDownload(chainId);
+        dispatch(pauseDownload({ chainId }));
       } catch (error) {
-        console.error(`Failed to reset chain ${chainId}:`, error);
+        console.error(`Failed to pause download for chain ${chainId}:`, error);
       }
     },
-    [chains, handleStopChain]
+    [dispatch]
   );
 
-  useEffect(() => {
-    const chainStatusUpdateHandler = ({ chainId, status }) => {
-      setChains(prevChains =>
-        prevChains.map(chain =>
-          chain.id === chainId ? { ...chain, status, progress: 0 } : chain
-        )
-      );
-    };
-
-    const unsubscribeStatus = window.electronAPI.onChainStatusUpdate(
-      chainStatusUpdateHandler
-    );
-
-    return () => {
-      if (typeof unsubscribeStatus === 'function') unsubscribeStatus();
-    };
-  }, []);
+  const handleResumeDownload = useCallback(
+    async chainId => {
+      try {
+        await window.electronAPI.resumeDownload(chainId);
+        dispatch(resumeDownload({ chainId }));
+      } catch (error) {
+        console.error(`Failed to resume download for chain ${chainId}:`, error);
+      }
+    },
+    [dispatch]
+  );
 
   return (
     <div className="Nodes">
@@ -189,7 +176,8 @@ function Nodes() {
             onDownload={handleDownloadChain}
             onStart={handleStartChain}
             onStop={handleStopChain}
-            onReset={handleResetChain}
+            onPauseDownload={handlePauseDownload}
+            onResumeDownload={handleResumeDownload}
           />
         ))}
       </div>

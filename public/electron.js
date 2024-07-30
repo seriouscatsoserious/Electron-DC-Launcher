@@ -7,7 +7,6 @@ const { spawn } = require("child_process");
 const AdmZip = require("adm-zip");
 const axios = require("axios");
 
-// Load configuration
 const configPath = path.join(__dirname, "chain_config.json");
 let config;
 let mainWindow = null;
@@ -16,12 +15,18 @@ let runningProcesses = {};
 class DownloadManager {
   constructor() {
     this.activeDownloads = new Map();
+    this.pausedDownloads = new Map();
   }
 
   startDownload(chainId, url, basePath) {
-    if (this.activeDownloads.has(chainId)) return;
+    if (this.activeDownloads.has(chainId) || this.pausedDownloads.has(chainId))
+      return;
 
-    this.activeDownloads.set(chainId, { progress: 0, status: "downloading" });
+    this.activeDownloads.set(chainId, {
+      progress: 0,
+      status: "downloading",
+      downloadedLength: 0,
+    });
     mainWindow.webContents.send("download-started", { chainId });
     this.downloadAndExtract(chainId, url, basePath);
     this.sendDownloadsUpdate();
@@ -38,7 +43,6 @@ class DownloadManager {
       );
 
       await this.verifyZip(zipPath);
-
       await this.extractZip(chainId, zipPath, basePath);
       console.log(`Extraction completed for ${chainId}`);
 
@@ -51,6 +55,7 @@ class DownloadManager {
       console.error(`Error processing ${chainId}:`, error);
       console.error(`Error stack: ${error.stack}`);
       this.activeDownloads.delete(chainId);
+      this.pausedDownloads.delete(chainId);
       this.sendDownloadsUpdate();
       mainWindow.webContents.send("download-error", {
         chainId,
@@ -72,44 +77,148 @@ class DownloadManager {
 
   async downloadFile(chainId, url, zipPath) {
     return new Promise((resolve, reject) => {
-      axios({
-        method: "get",
-        url: url,
-        responseType: "stream",
-      })
-        .then((response) => {
-          const totalLength = parseInt(response.headers["content-length"], 10);
-          let downloadedLength = 0;
+      const download = this.activeDownloads.get(chainId);
+      if (!download) {
+        reject(new Error("Download not found"));
+        return;
+      }
 
-          const writer = fs.createWriteStream(zipPath);
+      let downloadedLength = download.downloadedLength || 0;
+      const writer = fs.createWriteStream(zipPath, { flags: "a" });
 
-          response.data.on("data", (chunk) => {
-            downloadedLength += chunk.length;
-            writer.write(chunk);
-            const progress = (downloadedLength / totalLength) * 100;
-            this.updateDownloadProgress(chainId, progress);
-          });
+      const cancelSource = axios.CancelToken.source();
+      download.cancelTokenSource = cancelSource;
 
-          response.data.on("end", () => {
+      const handleDownload = (response) => {
+        const totalLength =
+          parseInt(response.headers["content-length"], 10) + downloadedLength;
+
+        response.data.on("data", (chunk) => {
+          if (this.pausedDownloads.has(chainId)) {
+            response.data.pause();
             writer.end();
-            if (downloadedLength === totalLength) {
-              resolve();
-            } else {
-              reject(
-                new Error(
-                  `Incomplete download: expected ${totalLength} bytes, got ${downloadedLength} bytes`
-                )
-              );
-            }
-          });
+            return;
+          }
 
-          writer.on("error", reject);
-        })
-        .catch((error) => {
-          console.error(`Axios error for ${chainId}:`, error);
-          reject(error);
+          downloadedLength += chunk.length;
+          writer.write(chunk);
+          const progress = (downloadedLength / totalLength) * 100;
+          this.updateDownloadProgress(chainId, progress, downloadedLength);
         });
+
+        response.data.on("end", () => {
+          writer.end();
+          if (downloadedLength === totalLength) {
+            resolve();
+          } else if (!this.pausedDownloads.has(chainId)) {
+            reject(
+              new Error(
+                `Incomplete download: expected ${totalLength} bytes, got ${downloadedLength} bytes`
+              )
+            );
+          }
+        });
+
+        writer.on("error", reject);
+      };
+
+      const startDownload = () => {
+        axios({
+          method: "get",
+          url: url,
+          responseType: "stream",
+          headers:
+            downloadedLength > 0 ? { Range: `bytes=${downloadedLength}-` } : {},
+          cancelToken: cancelSource.token,
+        })
+          .then(handleDownload)
+          .catch(reject);
+      };
+
+      startDownload();
     });
+  }
+
+  async pauseDownload(chainId) {
+    const download = this.activeDownloads.get(chainId);
+    if (download) {
+      this.pausedDownloads.set(chainId, download);
+      this.activeDownloads.delete(chainId);
+      this.updateDownloadProgress(
+        chainId,
+        download.progress,
+        download.downloadedLength,
+        "paused"
+      );
+      if (download.cancelTokenSource) {
+        download.cancelTokenSource.cancel("Download paused");
+      }
+    } else {
+      throw new Error(`No active download found for chain ${chainId}`);
+    }
+  }
+
+  async resumeDownload(chainId) {
+    const download = this.pausedDownloads.get(chainId);
+    if (download) {
+      this.activeDownloads.set(chainId, download);
+      this.pausedDownloads.delete(chainId);
+      this.updateDownloadProgress(
+        chainId,
+        download.progress,
+        download.downloadedLength,
+        "downloading"
+      );
+      const chain = config.chains.find((c) => c.id === chainId);
+      if (chain) {
+        const url =
+          chain.download.base_url + chain.download.files[process.platform];
+        const homeDir = app.getPath("home");
+        const baseDir = path.join(
+          homeDir,
+          chain.directories.base[process.platform]
+        );
+        this.downloadAndExtract(chainId, url, baseDir);
+      } else {
+        throw new Error(`Chain configuration not found for ${chainId}`);
+      }
+    } else {
+      throw new Error(`No paused download found for chain ${chainId}`);
+    }
+  }
+  updateDownloadProgress(
+    chainId,
+    progress,
+    downloadedLength,
+    status = "downloading"
+  ) {
+    const download =
+      this.activeDownloads.get(chainId) || this.pausedDownloads.get(chainId);
+    if (download) {
+      download.progress = progress;
+      download.status = status;
+      download.downloadedLength = downloadedLength;
+      this.sendDownloadsUpdate();
+    }
+  }
+
+  sendDownloadsUpdate() {
+    if (mainWindow) {
+      const downloadsArray = [
+        ...this.activeDownloads.entries(),
+        ...this.pausedDownloads.entries(),
+      ].map(([chainId, download]) => {
+        const chain = config.chains.find((c) => c.id === chainId);
+        return {
+          chainId,
+          displayName: chain ? chain.display_name : chainId,
+          progress: download.progress,
+          status: download.status,
+          downloadedLength: download.downloadedLength,
+        };
+      });
+      mainWindow.webContents.send("downloads-update", downloadsArray);
+    }
   }
 
   async verifyZip(zipPath) {
@@ -186,31 +295,6 @@ class DownloadManager {
       }
     });
   }
-
-  updateDownloadProgress(chainId, progress, status = "downloading") {
-    const download = this.activeDownloads.get(chainId);
-    if (download) {
-      download.progress = progress;
-      download.status = status;
-      this.sendDownloadsUpdate();
-    }
-  }
-
-  sendDownloadsUpdate() {
-    if (mainWindow) {
-      const downloadsArray = Array.from(this.activeDownloads.entries()).map(
-        ([chainId, download]) => {
-          const chain = config.chains.find((c) => c.id === chainId);
-          return {
-            chainId,
-            displayName: chain ? chain.display_name : chainId,
-            ...download,
-          };
-        }
-      );
-      mainWindow.webContents.send("downloads-update", downloadsArray);
-    }
-  }
 }
 
 const downloadManager = new DownloadManager();
@@ -232,7 +316,7 @@ async function createDirectory(dirPath) {
   } catch (error) {
     if (error.code === "ENOENT") {
       await fsPromises.mkdir(dirPath, { recursive: true });
-      return true; // New directory created
+      return true;
     } else {
       throw error;
     }
@@ -279,7 +363,6 @@ function createWindow() {
         preload: path.join(__dirname, "preload.js"),
       },
     });
-    // mainWindow.setMenu(null);
     mainWindow.loadURL(
       isDev
         ? "http://localhost:3000"
@@ -330,6 +413,26 @@ app.whenReady().then(async () => {
     return { success: true };
   });
 
+  ipcMain.handle("pause-download", async (event, chainId) => {
+    try {
+      downloadManager.pauseDownload(chainId);
+      return { success: true };
+    } catch (error) {
+      console.error(`Failed to pause download for chain ${chainId}:`, error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("resume-download", async (event, chainId) => {
+    try {
+      downloadManager.resumeDownload(chainId);
+      return { success: true };
+    } catch (error) {
+      console.error(`Failed to resume download for chain ${chainId}:`, error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle("get-full-data-dir", async (event, chainId) => {
     const chain = getChainConfig(chainId);
     if (!chain) throw new Error("Chain not found");
@@ -355,10 +458,8 @@ app.whenReady().then(async () => {
     console.log(`Attempting to start binary at: ${fullBinaryPath}`);
 
     try {
-      // Check if the binary exists
       await fsPromises.access(fullBinaryPath, fs.constants.F_OK);
 
-      // Make the binary executable (only needed for Unix-based systems)
       if (process.platform !== "win32") {
         await fsPromises.chmod(fullBinaryPath, "755");
       }
@@ -426,12 +527,13 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("get-downloads", () => {
-    return Array.from(downloadManager.activeDownloads.entries()).map(
-      ([chainId, download]) => ({
-        chainId,
-        ...download,
-      })
-    );
+    return [
+      ...downloadManager.activeDownloads.entries(),
+      ...downloadManager.pausedDownloads.entries(),
+    ].map(([chainId, download]) => ({
+      chainId,
+      ...download,
+    }));
   });
 
   ipcMain.handle("open-data-dir", async (event, chainId) => {
@@ -458,7 +560,6 @@ app.whenReady().then(async () => {
       const chain = config.chains.find((c) => c.id === chainId);
       if (!chain) throw new Error("Chain not found");
 
-      // Double-check if the chain is running and stop it
       if (runningProcesses[chainId]) {
         await stopChain(chainId);
       }
@@ -469,15 +570,12 @@ app.whenReady().then(async () => {
         chain.directories.base[process.platform]
       );
 
-      // Remove the entire data directory
       await fs.remove(baseDir);
       console.log(`Reset chain ${chainId}: removed directory ${baseDir}`);
 
-      // Recreate the empty directory
       await fs.ensureDir(baseDir);
       console.log(`Recreated empty directory for chain ${chainId}: ${baseDir}`);
 
-      // Send status update back to renderer process
       mainWindow.webContents.send("chain-status-update", {
         chainId,
         status: "not_downloaded",
