@@ -29,6 +29,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('download-complete', subscription);
     };
   },
+  // Add this method to handle 'download-started' event
+  onDownloadStarted: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('download-started', subscription);
+    return () => {
+      ipcRenderer.removeListener('download-started', subscription);
+    };
+  },
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
   sendMessage: (channel, data) => {
     let validChannels = ['toMain'];

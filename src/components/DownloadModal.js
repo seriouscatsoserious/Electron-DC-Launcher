@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '../contexts/ThemeContext';
-import { hideDownloadModal } from '../store/downloadModalSlice';
+import { hideDownloadModal, showDownloadModal } from '../store/downloadModalSlice';
 import DownloadItem from './DownloadItem';
 import styles from './DownloadModal.module.css';
 
@@ -28,36 +28,62 @@ const DownloadModal = () => {
     }, 300); // Duration of fade-out animation
   }, [dispatch]);
 
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(closeModal, FADE_DELAY);
+  }, [closeModal]);
+
   const handleClickOutside = useCallback((event) => {
-    if (modalRef.current && !modalRef.current.contains(event.target)) {
+    if (
+      modalRef.current && 
+      !modalRef.current.contains(event.target) &&
+      ![...document.querySelectorAll('[id^="download-button-"]')].some(el => el.contains(event.target))
+    ) {
       closeModal();
     }
   }, [closeModal]);
 
   useEffect(() => {
     if (isVisible) {
-      // Clear any existing timer
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-
-      // Set a new timer if there are no active downloads
-      if (activeDownloads.length === 0) {
-        timerRef.current = setTimeout(closeModal, FADE_DELAY);
-      }
-
-      // Add click outside listener
+      resetTimer();
       document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
+  }, [isVisible, activeDownloads.length, closeModal, handleClickOutside, resetTimer]);
 
-    // Cleanup function
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+  const handleMouseEnter = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    resetTimer();
+  };
+
+  useEffect(() => {
+    const { electronAPI } = window;
+
+    const handleDownloadStarted = () => {
+      if (!isVisible) {
+        dispatch(showDownloadModal());
       }
-      document.removeEventListener('mousedown', handleClickOutside);
+      resetTimer();
     };
-  }, [isVisible, activeDownloads.length, closeModal, handleClickOutside]);
+
+    const unsubscribe = electronAPI.onDownloadStarted(handleDownloadStarted);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch, resetTimer, isVisible]);
 
   if (!isVisible && !isClosing) return null;
 
@@ -65,6 +91,8 @@ const DownloadModal = () => {
     <div
       ref={modalRef}
       className={`${styles.downloadModal} ${isDarkMode ? styles.dark : styles.light} ${isClosing ? styles.fadeOut : styles.fadeIn}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className={styles.downloadModalContent}>
         <h2>Downloads</h2>

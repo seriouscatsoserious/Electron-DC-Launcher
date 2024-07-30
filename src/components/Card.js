@@ -98,6 +98,7 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
           className={`btn ${getButtonClass()}`}
           onClick={handleAction}
           disabled={chain.status === 'downloading' || chain.status === 'extracting'}
+          id={`download-button-${chain.id}`} // Add ID here
         >
           {getButtonText()}
         </button>
