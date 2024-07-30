@@ -1,6 +1,6 @@
 # Drivechain Launcher
 
-Drivechain Launcher is an Electron-based desktop application that allows users to manage and interact with various blockchain nodes, including the main Drivechain and its sidechains.
+Drivechain Launcher is an Electron-based desktop application that allows users to manage and interact with various blockchain nodes, including a version of Bitcoin Core with BIP 300 and BIP 301 enabled, and various drivechains.
 
 ## Features
 
