@@ -208,7 +208,7 @@ async function loadConfig() {
   try {
     const configData = await fsPromises.readFile(configPath, 'utf8');
     config = JSON.parse(configData);
-    console.log('Loaded config:', config);
+    
   } catch (error) {
     console.error('Failed to load config:', error);
     app.quit();
@@ -217,17 +217,19 @@ async function loadConfig() {
 
 async function createDirectory(dirPath) {
   try {
-    await fsPromises.mkdir(dirPath, { recursive: true });
-    console.log(`Created new directory: ${dirPath}`);
-    return true;
+    await fsPromises.access(dirPath, fs.constants.F_OK);
+    return false; 
   } catch (error) {
-    if (error.code === 'EEXIST') {
-      console.log(`Directory already exists: ${dirPath}`);
-      return false;
+    if (error.code === 'ENOENT') {
+      await fsPromises.mkdir(dirPath, { recursive: true });
+      console.log(`Created new directory: ${dirPath}`);
+      return true; // New directory created
+    } else {
+      throw error;
     }
-    throw error;
   }
 }
+
 
 async function setupChainDirectories() {
   console.log('Checking chain base directories...');

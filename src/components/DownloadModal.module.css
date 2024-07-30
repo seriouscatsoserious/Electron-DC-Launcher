@@ -1,7 +1,7 @@
 .downloadModal {
   position: fixed;
   top: 60px;
-  right: 17px; /* Set to match the navbar's right padding */
+  right: 18px; /* Set to match the navbar's right padding */
   width: 300px;
   max-height: 80vh;
   overflow-y: auto;
