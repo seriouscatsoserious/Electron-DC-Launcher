@@ -178,7 +178,6 @@
 }
 
 .resetBtn {
-  composes: btn from global;
   background-color: var(--stop-btn);
 }
 

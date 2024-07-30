@@ -42,11 +42,10 @@ class DownloadManager {
         `Download completed for ${chainId}. File saved at ${zipPath}`
       );
 
-      await this.verifyZip(zipPath);
       await this.extractZip(chainId, zipPath, basePath);
       console.log(`Extraction completed for ${chainId}`);
 
-      await fsPromises.unlink(zipPath);
+      await fs.promises.unlink(zipPath);
 
       this.activeDownloads.delete(chainId);
       this.sendDownloadsUpdate();
@@ -64,7 +63,7 @@ class DownloadManager {
       });
 
       try {
-        await fsPromises.unlink(zipPath);
+        await fs.promises.unlink(zipPath);
         console.log(`Cleaned up partial download for ${chainId}`);
       } catch (unlinkError) {
         console.error(
@@ -76,37 +75,45 @@ class DownloadManager {
   }
 
   async downloadFile(chainId, url, zipPath) {
-    return new Promise((resolve, reject) => {
-      const download = this.activeDownloads.get(chainId);
-      if (!download) {
-        reject(new Error("Download not found"));
-        return;
-      }
+    return new Promise(async (resolve, reject) => {
+      const download = this.activeDownloads.get(chainId) || {
+        progress: 0,
+        downloadedLength: 0,
+      };
+      this.activeDownloads.set(chainId, download);
 
-      let downloadedLength = download.downloadedLength || 0;
       const writer = fs.createWriteStream(zipPath, { flags: "a" });
+      let downloadedLength = download.downloadedLength || 0;
 
-      const cancelSource = axios.CancelToken.source();
-      download.cancelTokenSource = cancelSource;
+      try {
+        const cancelSource = axios.CancelToken.source();
+        download.cancelSource = cancelSource;
 
-      const handleDownload = (response) => {
+        const { data, headers } = await axios({
+          method: "GET",
+          url: url,
+          responseType: "stream",
+          headers:
+            downloadedLength > 0 ? { Range: `bytes=${downloadedLength}-` } : {},
+          cancelToken: cancelSource.token,
+        });
+
         const totalLength =
-          parseInt(response.headers["content-length"], 10) + downloadedLength;
+          parseInt(headers["content-length"], 10) + downloadedLength;
 
-        response.data.on("data", (chunk) => {
-          if (this.pausedDownloads.has(chainId)) {
-            response.data.pause();
-            writer.end();
-            return;
-          }
-
+        data.on("data", (chunk) => {
           downloadedLength += chunk.length;
           writer.write(chunk);
           const progress = (downloadedLength / totalLength) * 100;
           this.updateDownloadProgress(chainId, progress, downloadedLength);
+
+          if (this.pausedDownloads.has(chainId)) {
+            data.pause();
+            writer.end();
+          }
         });
 
-        response.data.on("end", () => {
+        data.on("end", () => {
           writer.end();
           if (downloadedLength === totalLength) {
             resolve();
@@ -116,32 +123,49 @@ class DownloadManager {
                 `Incomplete download: expected ${totalLength} bytes, got ${downloadedLength} bytes`
               )
             );
+          } else {
+            resolve(); // Resolve if paused, we'll resume later
           }
         });
 
         writer.on("error", reject);
-      };
+      } catch (error) {
+        if (axios.isCancel(error)) {
+          console.log("Download canceled:", error.message);
+          resolve(); // Resolve on cancel, as it's an expected behavior
+        } else {
+          reject(error);
+        }
+      }
+    });
+  }
 
-      const startDownload = () => {
-        axios({
-          method: "get",
-          url: url,
-          responseType: "stream",
-          headers:
-            downloadedLength > 0 ? { Range: `bytes=${downloadedLength}-` } : {},
-          cancelToken: cancelSource.token,
-        })
-          .then(handleDownload)
-          .catch(reject);
-      };
-
-      startDownload();
+  async extractZip(chainId, zipPath, basePath) {
+    console.log(`Starting extraction to ${basePath} for ${chainId}`);
+    return new Promise((resolve, reject) => {
+      try {
+        const zip = new AdmZip(zipPath);
+        zip.extractAllToAsync(basePath, true, (error) => {
+          if (error) {
+            console.error(`Extraction error for ${chainId}: ${error.message}`);
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+      } catch (error) {
+        console.error(`Error in extractZip for ${chainId}: ${error.message}`);
+        reject(error);
+      }
     });
   }
 
   async pauseDownload(chainId) {
     const download = this.activeDownloads.get(chainId);
     if (download) {
+      if (download.cancelSource) {
+        download.cancelSource.cancel("Download paused");
+      }
       this.pausedDownloads.set(chainId, download);
       this.activeDownloads.delete(chainId);
       this.updateDownloadProgress(
@@ -150,12 +174,9 @@ class DownloadManager {
         download.downloadedLength,
         "paused"
       );
-      if (download.cancelTokenSource) {
-        download.cancelTokenSource.cancel("Download paused");
-      }
-    } else {
-      throw new Error(`No active download found for chain ${chainId}`);
+      return true;
     }
+    return false;
   }
 
   async resumeDownload(chainId) {
@@ -179,13 +200,12 @@ class DownloadManager {
           chain.directories.base[process.platform]
         );
         this.downloadAndExtract(chainId, url, baseDir);
-      } else {
-        throw new Error(`Chain configuration not found for ${chainId}`);
       }
-    } else {
-      throw new Error(`No paused download found for chain ${chainId}`);
+      return true;
     }
+    return false;
   }
+
   updateDownloadProgress(
     chainId,
     progress,
@@ -219,81 +239,6 @@ class DownloadManager {
       });
       mainWindow.webContents.send("downloads-update", downloadsArray);
     }
-  }
-
-  async verifyZip(zipPath) {
-    return new Promise((resolve, reject) => {
-      const readStream = fs.createReadStream(zipPath);
-      readStream.on("error", (error) => {
-        console.error(`Error reading zip file: ${error.message}`);
-        reject(error);
-      });
-
-      let byteCount = 0;
-      const possibleSignatures = [
-        Buffer.from([0x50, 0x4b, 0x05, 0x06]), // ZIP end header
-        Buffer.from([0x50, 0x4b, 0x03, 0x04]), // ZIP local file header
-      ];
-      let foundSignature = false;
-
-      readStream.on("data", (chunk) => {
-        byteCount += chunk.length;
-        for (let signature of possibleSignatures) {
-          if (chunk.includes(signature)) {
-            foundSignature = true;
-            readStream.destroy(); // Stop reading if we found a signature
-            resolve(); // Resolve the promise here
-            return;
-          }
-        }
-      });
-
-      readStream.on("end", () => {
-        console.log(`Zip file read complete. Total bytes: ${byteCount}`);
-        if (!foundSignature) {
-          console.error("No valid ZIP signature found");
-          reject(
-            new Error("Invalid or incomplete file: No ZIP signature found")
-          );
-        }
-      });
-
-      readStream.on("close", () => {
-        if (!foundSignature) {
-          reject(
-            new Error(
-              "Read stream closed without finding a valid ZIP signature"
-            )
-          );
-        }
-      });
-    });
-  }
-
-  async extractZip(chainId, zipPath, basePath) {
-    this.updateDownloadProgress(chainId, 100, "extracting");
-    mainWindow.webContents.send("chain-status-update", {
-      chainId,
-      status: "extracting",
-    });
-    return new Promise((resolve, reject) => {
-      try {
-        const zip = new AdmZip(zipPath);
-
-        console.log(`Starting extraction to ${basePath} for ${chainId}`);
-        zip.extractAllToAsync(basePath, true, (error) => {
-          if (error) {
-            console.error(`Extraction error for ${chainId}: ${error.message}`);
-            reject(error);
-          } else {
-            resolve();
-          }
-        });
-      } catch (error) {
-        console.error(`Error in extractZip for ${chainId}: ${error.message}`);
-        reject(error);
-      }
-    });
   }
 }
 
@@ -414,23 +359,13 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("pause-download", async (event, chainId) => {
-    try {
-      downloadManager.pauseDownload(chainId);
-      return { success: true };
-    } catch (error) {
-      console.error(`Failed to pause download for chain ${chainId}:`, error);
-      return { success: false, error: error.message };
-    }
+    const success = await downloadManager.pauseDownload(chainId);
+    return { success };
   });
 
   ipcMain.handle("resume-download", async (event, chainId) => {
-    try {
-      downloadManager.resumeDownload(chainId);
-      return { success: true };
-    } catch (error) {
-      console.error(`Failed to resume download for chain ${chainId}:`, error);
-      return { success: false, error: error.message };
-    }
+    const success = await downloadManager.resumeDownload(chainId);
+    return { success };
   });
 
   ipcMain.handle("get-full-data-dir", async (event, chainId) => {
