@@ -2,7 +2,14 @@ import React, { useState, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import ChainSettingsModal from './ChainSettingsModal';
 
-const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
+const Card = ({
+  chain,
+  onUpdateChain,
+  onDownload,
+  onStart,
+  onStop,
+  onReset,
+}) => {
   const { isDarkMode } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [fullChainData, setFullChainData] = useState(chain); // State to store full chain data
@@ -48,7 +55,7 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
     }
   }, [chain]);
 
-  const handleOpenDataDir = async (chainId) => {
+  const handleOpenDataDir = async chainId => {
     try {
       await window.electronAPI.openDataDir(chainId);
     } catch (error) {
@@ -97,7 +104,9 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         <button
           className={`btn ${getButtonClass()}`}
           onClick={handleAction}
-          disabled={chain.status === 'downloading' || chain.status === 'extracting'}
+          disabled={
+            chain.status === 'downloading' || chain.status === 'extracting'
+          }
           id={`download-button-${chain.id}`} // Add ID here
         >
           {getButtonText()}
@@ -107,13 +116,16 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         {/* <p className="version">Version: {chain.version}</p> */}
       </div>
       <div className="card-right">
-        <button className="btn settings" onClick={handleOpenSettings}>Settings</button>
+        <button className="btn settings" onClick={handleOpenSettings}>
+          Settings
+        </button>
       </div>
       {showSettings && (
         <ChainSettingsModal
           chain={fullChainData}
           onClose={() => setShowSettings(false)}
           onOpenDataDir={handleOpenDataDir}
+          onReset={onReset}
         />
       )}
     </div>
