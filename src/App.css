@@ -7,15 +7,19 @@
   --nav-bg: #f8f8f8;
   --nav-text: #333333;
   --download-btn: #007bff;
+  --download-btn-hover: #0056b3;
   --run-btn: #28a745;
+  --run-btn-hover: #218838;
   --stop-btn: #f44336;
-  --downloading-btn: #FFA500;
+  --stop-btn-hover: #c82333;
+  --downloading-btn: #ffa500;
+  --downloading-btn-hover: #cc8400;
   --modal-bg: #f0f0f0;
   --modal-text: #333;
   --download-item-bg: #fff;
   --download-item-text: #555;
   --progress-bar-bg: #e0e0e0;
-  --progress-bar-fill: #4CAF50;
+  --progress-bar-fill: #4caf50;
 }
 
 .dark {
@@ -27,15 +31,19 @@
   --nav-bg: #222222;
   --nav-text: #ffffff;
   --download-btn: #0056b3;
+  --download-btn-hover: #004494;
   --run-btn: #1e7e34;
+  --run-btn-hover: #18662b;
   --stop-btn: #d32f2f;
+  --stop-btn-hover: #a71d2a;
   --downloading-btn: #cc8400;
+  --downloading-btn-hover: #b37400;
   --modal-bg: #444444;
   --modal-text: #ffffff;
   --download-item-bg: #555555;
   --download-item-text: #ffffff;
   --progress-bar-bg: #666666;
-  --progress-bar-fill: #4CAF50;
+  --progress-bar-fill: #4caf50;
 }
 
 body {
@@ -96,13 +104,46 @@ body {
   color: white;
 }
 
-.download { background-color: var(--download-btn); }
-.run { background-color: var(--run-btn); }
-.downloading, .extracting { background-color: var(--downloading-btn); }
-.stop { background-color: var(--stop-btn); }
-.settings { background-color: var(--btn-bg); color: var(--btn-text); }
+.download {
+  background-color: var(--download-btn);
+}
+.download:hover {
+  background-color: var(--download-btn-hover);
+}
 
-.Nodes, .Wallet, .Tools, .Settings, .Other {
+.run {
+  background-color: var(--run-btn);
+}
+.run:hover {
+  background-color: var(--run-btn-hover);
+}
+
+.downloading,
+.extracting {
+  background-color: var(--downloading-btn);
+}
+.downloading:hover,
+.extracting:hover {
+  background-color: var(--downloading-btn-hover);
+}
+
+.stop {
+  background-color: var(--stop-btn);
+}
+.stop:hover {
+  background-color: var(--stop-btn-hover);
+}
+
+.settings {
+  background-color: var(--btn-bg);
+  color: var(--btn-text);
+}
+
+.Nodes,
+.Wallet,
+.Tools,
+.Settings,
+.Other {
   width: 100%;
   padding: 20px;
   box-sizing: border-box;
@@ -116,4 +157,3 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
-

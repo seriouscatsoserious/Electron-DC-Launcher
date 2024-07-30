@@ -1,124 +1,291 @@
+/* ChainSettingsModal.module.css */
+
+/* Existing styles */
+.resetButtonContainer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.resetButton {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+.resetButton:hover {
+  background-color: #c82333;
+}
+
+/* Dark mode styles */
+.dark .resetButton {
+  background-color: #bd2130;
+}
+
+.dark .resetButton:hover {
+  background-color: #a71d2a;
+}
+
+/* Light mode styles */
+.light .resetButton {
+  background-color: #dc3545;
+}
+
+.light .resetButton:hover {
+  background-color: #c82333;
+}
+
+/* New styles */
 .modalOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
 .modalContent {
-    background-color: #2c2c2c;
-    padding: 24px;
-    border-radius: 8px;
-    min-width: 500px;
-    max-width: 80%;
+  background-color: #2c2c2c;
+  padding: 24px;
+  border-radius: 8px;
+  min-width: 500px;
+  max-width: 80%;
 }
 
 .light .modalContent {
-    background-color: #f0f0f0;
-    color: #333333;
+  background-color: #f0f0f0;
+  color: #333333;
 }
 
 .modalHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .modalTitle {
-    font-size: 24px;
-    color: #ffffff;
-    margin: 0;
+  font-size: 24px;
+  color: #ffffff;
+  margin: 0;
 }
 
 .light .modalTitle {
-    color: #333333;
+  color: #333333;
 }
 
 .closeButton {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #ffffff;
-    padding: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ffffff;
+  padding: 4px;
 }
 
 .light .closeButton {
-    color: #333333;
+  color: #333333;
 }
 
 .infoGrid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .infoRow {
-    display: flex;
-    align-items: flex-start;
+  display: flex;
+  align-items: flex-start;
 }
 
 .label {
-    min-width: 120px;
-    margin-right: 12px;
-    font-weight: bold;
-    text-align: left; /* Ensure the text is left-aligned */
+  min-width: 120px;
+  margin-right: 12px;
+  font-weight: bold;
+  text-align: left; /* Ensure the text is left-aligned */
 }
 
 .link {
-    color: #4a90e2;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    word-break: break-word;
+  color: #4a90e2;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  word-break: break-word;
 }
 
 .light .link {
-    color: #0066cc;
+  color: #0066cc;
 }
 
 .link:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .externalIcon {
-    margin-left: 4px;
-    flex-shrink: 0;
+  margin-left: 4px;
+  flex-shrink: 0;
 }
 
 .dataDir {
-    display: flex;
-    align-items: center;
-    word-break: break-word;
+  display: flex;
+  align-items: center;
+  word-break: break-word;
 }
 
 .dirButton {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0; /* Reset padding */
-    margin: 0; /* Reset margin */
-    color: #ffffff;
-    margin-left: 8px; /* Add specific margin if needed */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    appearance: none; /* Reset browser default appearance */
-    -webkit-appearance: none; /* Reset for Safari */
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0; /* Reset padding */
+  margin: 0; /* Reset margin */
+  color: #ffffff;
+  margin-left: 8px; /* Add specific margin if needed */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  appearance: none; /* Reset browser default appearance */
+  -webkit-appearance: none; /* Reset for Safari */
 }
 
 .light .dirButton {
-    color: #333333;
+  color: #333333;
 }
 
 .dirButton svg {
-    width: 14px;
-    height: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+/* Button Container and Reset Button */
+.buttonContainer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.resetBtn {
+  composes: btn from global;
+  background-color: var(--stop-btn);
+}
+
+.resetBtn:hover {
+  background-color: var(--stop-btn-hover);
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: var(--modal-bg);
+  padding: 24px;
+  border-radius: 8px;
+  min-width: 500px;
+  max-width: 80%;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modalTitle {
+  font-size: 24px;
+  color: var(--modal-text);
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--modal-text);
+  padding: 4px;
+}
+
+.infoGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: flex-start;
+}
+
+.label {
+  min-width: 120px;
+  margin-right: 12px;
+  font-weight: bold;
+  text-align: left;
+}
+
+.link {
+  color: var(--download-btn);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  word-break: break-word;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.externalIcon {
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.dataDir {
+  display: flex;
+  align-items: center;
+  word-break: break-word;
+}
+
+.dirButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  color: var(--modal-text);
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.dirButton svg {
+  width: 14px;
+  height: 14px;
 }
