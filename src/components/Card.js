@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { useTheme } from '../contexts/ThemeContext';
 import ChainSettingsModal from './ChainSettingsModal';
+import { pauseDownload, resumeDownload } from '../store/downloadSlice';
 
 const Card = ({
   chain,
@@ -8,11 +10,13 @@ const Card = ({
   onDownload,
   onStart,
   onStop,
+  onOpenWalletDir,
   onReset,
 }) => {
   const { isDarkMode } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
-  const [fullChainData, setFullChainData] = useState(chain); // State to store full chain data
+  const [fullChainData, setFullChainData] = useState(chain);
+  const dispatch = useDispatch();
 
   const handleAction = async () => {
     switch (chain.status) {
@@ -48,10 +52,15 @@ const Card = ({
   const handleOpenSettings = useCallback(async () => {
     try {
       const fullDataDir = await window.electronAPI.getFullDataDir(chain.id);
-      setFullChainData({ ...chain, dataDir: fullDataDir });
+      const walletDir = await window.electronAPI.getWalletDir(chain.id);
+      setFullChainData({
+        ...chain,
+        dataDir: fullDataDir,
+        walletDir: walletDir,
+      });
       setShowSettings(true);
     } catch (error) {
-      console.error('Failed to fetch full data directory:', error);
+      console.error('Failed to fetch directories:', error);
     }
   }, [chain]);
 
@@ -107,13 +116,12 @@ const Card = ({
           disabled={
             chain.status === 'downloading' || chain.status === 'extracting'
           }
-          id={`download-button-${chain.id}`} // Add ID here
+          id={`download-button-${chain.id}`}
         >
           {getButtonText()}
         </button>
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
-        {/* <p className="version">Version: {chain.version}</p> */}
       </div>
       <div className="card-right">
         <button className="btn settings" onClick={handleOpenSettings}>
@@ -125,6 +133,7 @@ const Card = ({
           chain={fullChainData}
           onClose={() => setShowSettings(false)}
           onOpenDataDir={handleOpenDataDir}
+          onOpenWalletDir={onOpenWalletDir}
           onReset={onReset}
         />
       )}

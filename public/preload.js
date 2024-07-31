@@ -8,7 +8,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getChainStatus: (chainId) => ipcRenderer.invoke("get-chain-status", chainId),
   openDataDir: (chainId) => ipcRenderer.invoke("open-data-dir", chainId),
   getFullDataDir: (chainId) => ipcRenderer.invoke("get-full-data-dir", chainId),
+  getWalletDir: (chainId) => ipcRenderer.invoke("get-wallet-dir", chainId),
+  openWalletDir: (chainId) => ipcRenderer.invoke("open-wallet-dir", chainId),
   getDownloads: () => ipcRenderer.invoke("get-downloads"),
+  pauseDownload: (chainId) => ipcRenderer.invoke("pause-download", chainId),
+  resumeDownload: (chainId) => ipcRenderer.invoke("resume-download", chainId),
   sendMessage: (channel, data) => {
     let validChannels = ["toMain"];
     if (validChannels.includes(channel)) {
