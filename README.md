@@ -20,6 +20,7 @@ Drivechain Launcher is an **Electron-based desktop application** that allows use
 5. [Building](#building)
 6. [Contributing](#contributing)
 7. [License](#license)
+8. [Disclaimer](#disclaimer)
 
 ## 🛠️ Installation
 
@@ -90,3 +91,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. **Commit your changes** (`git commit -m 'Add some AmazingFeature'`)
 4. **Push to the branch** (`git push origin feature/AmazingFeature`)
 5. **Open a Pull Request**
+
+## ⚠️ Disclaimer
+
+Drivechain Launcher is in heavy development. Features and functionalities may change, and the application may contain bugs. Please use with caution and contribute to the development process to help improve the software.
