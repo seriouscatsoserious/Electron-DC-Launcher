@@ -19,8 +19,7 @@ Drivechain Launcher is an **Electron-based desktop application** that allows use
 4. [Development](#development)
 5. [Building](#building)
 6. [Contributing](#contributing)
-7. [License](#license)
-8. [Disclaimer](#disclaimer)
+7. [Disclaimer](#disclaimer)
 
 ## 🛠️ Installation
 
