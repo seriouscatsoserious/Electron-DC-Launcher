@@ -92,6 +92,17 @@ function Nodes() {
     downloadCompleteHandler,
   ]);
 
+  const handleOpenWalletDir = useCallback(async chainId => {
+    try {
+      await window.electronAPI.openDataDir(chainId);
+    } catch (error) {
+      console.error(
+        `Failed to open wallet directory for chain ${chainId}:`,
+        error
+      );
+    }
+  }, []);
+
   const handleUpdateChain = useCallback((chainId, updates) => {
     setChains(prevChains =>
       prevChains.map(chain =>
@@ -178,6 +189,7 @@ function Nodes() {
             onStop={handleStopChain}
             onPauseDownload={handlePauseDownload}
             onResumeDownload={handleResumeDownload}
+            onOpenWalletDir={handleOpenWalletDir}
           />
         ))}
       </div>

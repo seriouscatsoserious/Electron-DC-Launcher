@@ -4,7 +4,15 @@ import { useTheme } from '../contexts/ThemeContext';
 import ChainSettingsModal from './ChainSettingsModal';
 import { pauseDownload, resumeDownload } from '../store/downloadSlice';
 
-const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
+const Card = ({
+  chain,
+  onUpdateChain,
+  onDownload,
+  onStart,
+  onStop,
+  onOpenWalletDir,
+  onReset,
+}) => {
   const { isDarkMode } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [fullChainData, setFullChainData] = useState(chain);
@@ -38,34 +46,21 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
           console.error('Stop failed:', error);
         }
         break;
-      case 'downloading':
-        try {
-          console.log(`Pausing download for chain ${chain.id}`);
-          await window.electronAPI.pauseDownload(chain.id);
-          dispatch(pauseDownload({ chainId: chain.id }));
-        } catch (error) {
-          console.error('Pause failed:', error);
-        }
-        break;
-      case 'paused':
-        try {
-          console.log(`Resuming download for chain ${chain.id}`);
-          await window.electronAPI.resumeDownload(chain.id);
-          dispatch(resumeDownload({ chainId: chain.id }));
-        } catch (error) {
-          console.error('Resume failed:', error);
-        }
-        break;
     }
   };
 
   const handleOpenSettings = useCallback(async () => {
     try {
       const fullDataDir = await window.electronAPI.getFullDataDir(chain.id);
-      setFullChainData({ ...chain, dataDir: fullDataDir });
+      const walletDir = await window.electronAPI.getWalletDir(chain.id);
+      setFullChainData({
+        ...chain,
+        dataDir: fullDataDir,
+        walletDir: walletDir,
+      });
       setShowSettings(true);
     } catch (error) {
-      console.error('Failed to fetch full data directory:', error);
+      console.error('Failed to fetch directories:', error);
     }
   }, [chain]);
 
@@ -82,11 +77,8 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
       case 'not_downloaded':
         return 'download';
       case 'downloading':
-        return 'pause';
-      case 'paused':
-        return 'resume';
       case 'extracting':
-        return 'extracting';
+        return 'downloading';
       case 'downloaded':
       case 'stopped':
         return 'run';
@@ -102,9 +94,7 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
       case 'not_downloaded':
         return 'Download';
       case 'downloading':
-        return 'Pause';
-      case 'paused':
-        return 'Resume';
+        return 'Downloading';
       case 'extracting':
         return 'Extracting';
       case 'downloaded':
@@ -123,21 +113,15 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
         <button
           className={`btn ${getButtonClass()}`}
           onClick={handleAction}
-          disabled={chain.status === 'extracting'}
+          disabled={
+            chain.status === 'downloading' || chain.status === 'extracting'
+          }
           id={`download-button-${chain.id}`}
         >
           {getButtonText()}
         </button>
         <h2>{chain.display_name}</h2>
         <p>{chain.description}</p>
-        {(chain.status === 'downloading' || chain.status === 'paused') && (
-          <div className="progress-bar">
-            <div
-              className="progress"
-              style={{ width: `${chain.progress}%` }}
-            ></div>
-          </div>
-        )}
       </div>
       <div className="card-right">
         <button className="btn settings" onClick={handleOpenSettings}>
@@ -149,6 +133,8 @@ const Card = ({ chain, onUpdateChain, onDownload, onStart, onStop }) => {
           chain={fullChainData}
           onClose={() => setShowSettings(false)}
           onOpenDataDir={handleOpenDataDir}
+          onOpenWalletDir={onOpenWalletDir}
+          onReset={onReset}
         />
       )}
     </div>

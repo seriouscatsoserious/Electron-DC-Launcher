@@ -5,7 +5,13 @@ import { X, ExternalLink } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolderOpen as faFolderOpenRegular } from '@fortawesome/free-regular-svg-icons';
 
-const ChainSettingsModal = ({ chain, onClose, onOpenDataDir, onReset }) => {
+const ChainSettingsModal = ({
+  chain,
+  onClose,
+  onOpenDataDir,
+  onOpenWalletDir,
+  onReset,
+}) => {
   const { isDarkMode } = useTheme();
 
   const handleResetChain = () => {
@@ -88,6 +94,19 @@ const ChainSettingsModal = ({ chain, onClose, onOpenDataDir, onReset }) => {
                 className={styles.dirButton}
                 onClick={() => onOpenDataDir(chain.id)}
                 title="Open data directory"
+              >
+                <FontAwesomeIcon icon={faFolderOpenRegular} size="sm" />
+              </button>
+            </span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.label}>Wallet Directory:</span>
+            <span className={styles.dataDir}>
+              {chain.walletDir}
+              <button
+                className={styles.dirButton}
+                onClick={() => onOpenWalletDir(chain.id)}
+                title="Open wallet directory"
               >
                 <FontAwesomeIcon icon={faFolderOpenRegular} size="sm" />
               </button>
