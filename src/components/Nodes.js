@@ -2,11 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import Card from './Card';
 import DownloadModal from './DownloadModal';
-import {
-  updateDownloads,
-  pauseDownload,
-  resumeDownload,
-} from '../store/downloadSlice';
+import { updateDownloads } from '../store/downloadSlice';
 import { showDownloadModal } from '../store/downloadModalSlice';
 
 function Nodes() {
@@ -151,28 +147,25 @@ function Nodes() {
     }
   }, []);
 
-  const handlePauseDownload = useCallback(
+  const handleResetChain = useCallback(
     async chainId => {
-      try {
-        await window.electronAPI.pauseDownload(chainId);
-        dispatch(pauseDownload({ chainId }));
-      } catch (error) {
-        console.error(`Failed to pause download for chain ${chainId}:`, error);
+      const chain = chains.find(c => c.id === chainId);
+      if (chain.status === 'running') {
+        try {
+          await handleStopChain(chainId);
+        } catch (error) {
+          console.error(`Failed to stop chain ${chainId} before reset:`, error);
+          return;
+        }
       }
-    },
-    [dispatch]
-  );
 
-  const handleResumeDownload = useCallback(
-    async chainId => {
       try {
-        await window.electronAPI.resumeDownload(chainId);
-        dispatch(resumeDownload({ chainId }));
+        await window.electronAPI.resetChain(chainId);
       } catch (error) {
-        console.error(`Failed to resume download for chain ${chainId}:`, error);
+        console.error(`Failed to reset chain ${chainId}:`, error);
       }
     },
-    [dispatch]
+    [chains, handleStopChain]
   );
 
   return (
@@ -187,8 +180,7 @@ function Nodes() {
             onDownload={handleDownloadChain}
             onStart={handleStartChain}
             onStop={handleStopChain}
-            onPauseDownload={handlePauseDownload}
-            onResumeDownload={handleResumeDownload}
+            onReset={handleResetChain} // Pass handleResetChain to Card
             onOpenWalletDir={handleOpenWalletDir}
           />
         ))}

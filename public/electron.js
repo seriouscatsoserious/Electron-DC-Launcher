@@ -101,9 +101,10 @@ class DownloadManager {
         const totalLength =
           parseInt(headers["content-length"], 10) + downloadedLength;
 
+        data.pipe(writer);
+
         data.on("data", (chunk) => {
           downloadedLength += chunk.length;
-          writer.write(chunk);
           const progress = (downloadedLength / totalLength) * 100;
           this.updateDownloadProgress(chainId, progress, downloadedLength);
 
@@ -113,8 +114,13 @@ class DownloadManager {
           }
         });
 
-        data.on("end", () => {
-          writer.end();
+        data.on("error", (error) => {
+          reject(new Error(`Download error: ${error.message}`));
+        });
+
+        writer.on("error", reject);
+
+        writer.on("close", () => {
           if (downloadedLength === totalLength) {
             resolve();
           } else if (!this.pausedDownloads.has(chainId)) {
@@ -127,8 +133,6 @@ class DownloadManager {
             resolve(); // Resolve if paused, we'll resume later
           }
         });
-
-        writer.on("error", reject);
       } catch (error) {
         if (axios.isCancel(error)) {
           console.log("Download canceled:", error.message);
