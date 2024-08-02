@@ -12,6 +12,26 @@ let config;
 let mainWindow = null;
 let runningProcesses = {};
 
+function getWalletDir(chainId) {
+  const chain = getChainConfig(chainId);
+  if (!chain) throw new Error("Chain not found");
+
+  const platform = process.platform;
+  const walletPath = chain.directories.wallet;
+
+  if (chainId === "zsail" || chainId === "ethsail") {
+    // Handle absolute paths for zsail and ethsail
+    if (typeof walletPath === "object") {
+      return walletPath[platform] || null;
+    }
+    return walletPath || null;
+  } else {
+    // Standard handling for other chains
+    const baseDir = chain.directories.base[platform];
+    return path.join(app.getPath("home"), baseDir, walletPath);
+  }
+}
+
 class DownloadManager {
   constructor() {
     this.activeDownloads = new Map();
@@ -381,59 +401,53 @@ app.whenReady().then(async () => {
     return fullPath;
   });
 
-  ipcMain.handle("get-wallet-dir", async (event, chainId) => {
-    const chain = getChainConfig(chainId);
-    if (!chain) throw new Error("Chain not found");
-    const platform = process.platform;
-    const baseDir = chain.directories.base[platform];
-    const walletPath = chain.directories.wallet;
+  if (!ipcMain.listenerCount("get-wallet-dir")) {
+    ipcMain.handle("get-wallet-dir", async (event, chainId) => {
+      const chain = getChainConfig(chainId);
+      if (!chain) throw new Error("Chain not found");
 
-    // Handle cases where walletPath is an object (like for zSide)
-    const walletRelativePath =
-      typeof walletPath === "object" ? walletPath[platform] : walletPath;
+      const platform = process.platform;
+      const walletPath = chain.directories.wallet;
 
-    if (!walletRelativePath) {
-      return "Wallet directory not specified for this platform";
-    }
+      if (chainId === "zsail" || chainId === "ethsail") {
+        // Handle absolute paths for zsail and ethsail
+        if (typeof walletPath === "object") {
+          return walletPath[platform] || null;
+        }
+        return walletPath || null;
+      } else {
+        // Standard handling for other chains
+        const baseDir = chain.directories.base[platform];
+        return path.join(app.getPath("home"), baseDir, walletPath);
+      }
+    });
+  }
 
-    const fullPath = path.join(
-      app.getPath("home"),
-      baseDir,
-      walletRelativePath
-    );
-    return fullPath;
-  });
+  if (!ipcMain.listenerCount("open-wallet-dir")) {
+    ipcMain.handle("open-wallet-dir", async (event, chainId) => {
+      try {
+        const walletPath = await getWalletDir(chainId);
+        if (!walletPath) {
+          throw new Error("Wallet directory not specified for this platform");
+        }
 
-  ipcMain.handle("open-wallet-dir", async (event, chainId) => {
-    const chain = getChainConfig(chainId);
-    if (!chain) throw new Error("Chain not found");
+        let fullPath;
+        if (chainId === "zsail" || chainId === "ethsail") {
+          // For zsail and ethsail, prepend the home directory
+          fullPath = path.join(app.getPath("home"), walletPath);
+        } else {
+          // For other chains, the path is already complete
+          fullPath = walletPath;
+        }
 
-    const platform = process.platform;
-    const baseDir = chain.directories.base[platform];
-    const walletPath = chain.directories.wallet;
-
-    // Handle cases where walletPath is an object (like for zSide)
-    const walletRelativePath =
-      typeof walletPath === "object" ? walletPath[platform] : walletPath;
-
-    if (!walletRelativePath) {
-      throw new Error("Wallet directory not specified for this platform");
-    }
-
-    const fullPath = path.join(
-      app.getPath("home"),
-      baseDir,
-      walletRelativePath
-    );
-
-    try {
-      await shell.openPath(fullPath);
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to open wallet directory:", error);
-      return { success: false, error: error.message };
-    }
-  });
+        await shell.openPath(fullPath);
+        return { success: true };
+      } catch (error) {
+        console.error("Failed to open wallet directory:", error);
+        return { success: false, error: error.message };
+      }
+    });
+  }
 
   ipcMain.handle("start-chain", async (event, chainId) => {
     const chain = config.chains.find((c) => c.id === chainId);

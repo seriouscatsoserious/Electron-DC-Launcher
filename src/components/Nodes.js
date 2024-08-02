@@ -90,7 +90,7 @@ function Nodes() {
 
   const handleOpenWalletDir = useCallback(async chainId => {
     try {
-      await window.electronAPI.openDataDir(chainId);
+      await window.electronAPI.openWalletDir(chainId);
     } catch (error) {
       console.error(
         `Failed to open wallet directory for chain ${chainId}:`,
