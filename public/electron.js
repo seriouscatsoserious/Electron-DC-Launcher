@@ -268,6 +268,87 @@ class DownloadManager {
 
 const downloadManager = new DownloadManager();
 
+async function analyzeWalletPath(fullPath) {
+  try {
+    const stats = await fs.promises.stat(fullPath);
+    return {
+      exists: true,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile(),
+    };
+  } catch (error) {
+    return { exists: false, isDirectory: false, isFile: false };
+  }
+}
+
+async function getOpenablePath(fullPath) {
+  const analysis = await analyzeWalletPath(fullPath);
+  if (analysis.exists && analysis.isDirectory) {
+    return fullPath;
+  } else if (analysis.exists && analysis.isFile) {
+    return path.dirname(fullPath);
+  } else {
+    // If path doesn't exist, return the nearest existing parent directory
+    let currentPath = fullPath;
+    while (currentPath !== path.parse(currentPath).root) {
+      currentPath = path.dirname(currentPath);
+      const parentAnalysis = await analyzeWalletPath(currentPath);
+      if (parentAnalysis.exists && parentAnalysis.isDirectory) {
+        return currentPath;
+      }
+    }
+    throw new Error("No valid parent directory found");
+  }
+}
+
+async function openWalletLocation(chainId) {
+  const chain = getChainConfig(chainId);
+  if (!chain) throw new Error("Chain not found");
+
+  const platform = process.platform;
+  const walletPath = chain.directories.wallet;
+
+  let fullPath;
+  if (chainId === "zsail" || chainId === "ethsail") {
+    if (typeof walletPath === "object") {
+      fullPath = path.join(app.getPath("home"), walletPath[platform] || "");
+    } else {
+      fullPath = path.join(app.getPath("home"), walletPath || "");
+    }
+  } else {
+    const baseDir = chain.directories.base[platform];
+    fullPath = path.join(app.getPath("home"), baseDir, walletPath);
+  }
+
+  const analysis = await analyzeWalletPath(fullPath);
+
+  if (analysis.exists) {
+    if (analysis.isDirectory) {
+      await shell.openPath(fullPath);
+      return {
+        success: true,
+        openedPath: fullPath,
+      };
+    } else {
+      // If it's a file, open its containing directory
+      const dirPath = path.dirname(fullPath);
+      await shell.openPath(dirPath);
+      return {
+        success: true,
+        openedPath: dirPath,
+      };
+    }
+  } else {
+    // If the exact path doesn't exist, don't open anything
+    return {
+      success: false,
+      error: "Wallet directory not found",
+      path: fullPath,
+      chainName: chain.display_name,
+    };
+  }
+}
+
 async function loadConfig() {
   try {
     const configData = await fsPromises.readFile(configPath, "utf8");
@@ -422,26 +503,11 @@ app.whenReady().then(async () => {
       }
     });
   }
-
   if (!ipcMain.listenerCount("open-wallet-dir")) {
     ipcMain.handle("open-wallet-dir", async (event, chainId) => {
       try {
-        const walletPath = await getWalletDir(chainId);
-        if (!walletPath) {
-          throw new Error("Wallet directory not specified for this platform");
-        }
-
-        let fullPath;
-        if (chainId === "zsail" || chainId === "ethsail") {
-          // For zsail and ethsail, prepend the home directory
-          fullPath = path.join(app.getPath("home"), walletPath);
-        } else {
-          // For other chains, the path is already complete
-          fullPath = walletPath;
-        }
-
-        await shell.openPath(fullPath);
-        return { success: true };
+        const result = await openWalletLocation(chainId);
+        return result;
       } catch (error) {
         console.error("Failed to open wallet directory:", error);
         return { success: false, error: error.message };
