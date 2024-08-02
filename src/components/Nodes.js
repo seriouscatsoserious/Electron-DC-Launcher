@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import Card from './Card';
 import DownloadModal from './DownloadModal';
+import WalletMessageModal from './WalletMessageModal';
 import { updateDownloads } from '../store/downloadSlice';
 import { showDownloadModal } from '../store/downloadModalSlice';
 
 function Nodes() {
   const [chains, setChains] = useState([]);
+  const [walletMessage, setWalletMessage] = useState(null);
   const dispatch = useDispatch();
 
   const fetchChains = useCallback(async () => {
@@ -90,12 +92,24 @@ function Nodes() {
 
   const handleOpenWalletDir = useCallback(async chainId => {
     try {
-      await window.electronAPI.openDataDir(chainId);
+      const result = await window.electronAPI.openWalletDir(chainId);
+      if (!result.success) {
+        setWalletMessage({
+          error: result.error,
+          path: result.path,
+          chainName: result.chainName,
+        });
+      }
     } catch (error) {
       console.error(
         `Failed to open wallet directory for chain ${chainId}:`,
         error
       );
+      setWalletMessage({
+        error: error.message,
+        path: '',
+        chainName: '',
+      });
     }
   }, []);
 
@@ -180,12 +194,19 @@ function Nodes() {
             onDownload={handleDownloadChain}
             onStart={handleStartChain}
             onStop={handleStopChain}
-            onReset={handleResetChain} // Pass handleResetChain to Card
+            onReset={handleResetChain}
             onOpenWalletDir={handleOpenWalletDir}
           />
         ))}
       </div>
       <DownloadModal />
+      {walletMessage && (
+        <WalletMessageModal
+          error={walletMessage.error}
+          path={walletMessage.path}
+          onClose={() => setWalletMessage(null)}
+        />
+      )}
     </div>
   );
 }
