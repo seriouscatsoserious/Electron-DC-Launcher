@@ -8,6 +8,7 @@ import Wallet from './components/Wallet';
 // import Tools from './components/Tools';
 import Settings from './components/Settings';
 import Other from './components/Other';
+import FaucetModal from './components/FaucetModal';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 function AppContent() {
@@ -28,6 +29,7 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/other" element={<Other />} />
         </Routes>
+        <FaucetModal />
       </div>
     </Router>
   );

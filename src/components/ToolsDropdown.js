@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useDispatch } from 'react-redux';
+import { showFaucetModal } from '../store/faucetSlice';
 import navStyles from './NavBar.module.css';
 import styles from './ToolsDropdown.module.css';
 
@@ -9,6 +11,7 @@ const ToolsDropdown = () => {
   const { isDarkMode } = useTheme();
   const dropdownRef = useRef(null);
   const linkRef = useRef(null);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const handleClickOutside = event => {
@@ -31,7 +34,10 @@ const ToolsDropdown = () => {
   const handleOptionClick = option => {
     console.log(`Selected option: ${option}`);
     setIsOpen(false);
-    // Implement the functionality for each option here
+    if (option === 'Faucet') {
+      dispatch(showFaucetModal());
+    }
+    // Implement other options here
   };
 
   useEffect(() => {
@@ -58,9 +64,8 @@ const ToolsDropdown = () => {
           ref={dropdownRef}
           className={`${styles.dropdownMenu} ${isOpen ? styles.fadeIn : styles.fadeOut}`}
         >
-          <li onClick={() => handleOptionClick('Option 1')}>Option 1</li>
-          <li onClick={() => handleOptionClick('Option 2')}>Option 2</li>
-          <li onClick={() => handleOptionClick('Option 3')}>Option 3</li>
+          <li onClick={() => handleOptionClick('Faucet')}>Faucet</li>
+          {/* ... (keep other options) */}
         </ul>
       )}
     </div>

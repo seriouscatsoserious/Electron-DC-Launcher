@@ -7,6 +7,8 @@ const { spawn } = require("child_process");
 const AdmZip = require("adm-zip");
 const axios = require("axios");
 
+const API_BASE_URL = "https://api.drivechain.live";
+
 const configPath = path.join(__dirname, "chain_config.json");
 let config;
 let mainWindow = null;
@@ -268,6 +270,43 @@ class DownloadManager {
 
 const downloadManager = new DownloadManager();
 
+async function listClaims() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/listclaims`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to list claims:", error);
+    throw error;
+  }
+}
+
+async function submitClaim(destination, amount) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/claim`, {
+      destination,
+      amount: amount.toString(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to submit claim:", error);
+    throw error;
+  }
+}
+
+async function requestFaucet(amount, address) {
+  try {
+    // Placeholder for API call
+    // const response = await axios.post('https://faucet-api-url.com', { amount, address });
+    // return response.data;
+
+    // For now, we'll just return a mock successful response
+    return { success: true, message: "BTC requested successfully" };
+  } catch (error) {
+    console.error("Faucet request failed:", error);
+    throw error;
+  }
+}
+
 async function analyzeWalletPath(fullPath) {
   try {
     const stats = await fs.promises.stat(fullPath);
@@ -425,6 +464,26 @@ function createWindow() {
   }
 }
 
+function setupIPCHandlers() {
+  ipcMain.handle("list-claims", async () => {
+    try {
+      const claims = await listClaims();
+      return { success: true, data: claims };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("submit-claim", async (event, { destination, amount }) => {
+    try {
+      const result = await submitClaim(destination, amount);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+}
+
 function getChainConfig(chainId) {
   return config.chains.find((c) => c.id === chainId);
 }
@@ -442,9 +501,19 @@ app.whenReady().then(async () => {
   await loadConfig();
   await setupChainDirectories();
   createWindow();
+  setupIPCHandlers();
 
   ipcMain.handle("get-config", async () => {
     return config;
+  });
+
+  ipcMain.handle("request-faucet", async (event, amount, address) => {
+    try {
+      const result = await requestFaucet(amount, address);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   });
 
   ipcMain.handle("download-chain", async (event, chainId) => {

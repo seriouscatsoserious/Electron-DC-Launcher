@@ -13,6 +13,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDownloads: () => ipcRenderer.invoke("get-downloads"),
   pauseDownload: (chainId) => ipcRenderer.invoke("pause-download", chainId),
   resumeDownload: (chainId) => ipcRenderer.invoke("resume-download", chainId),
+  requestFaucet: (amount, address) =>
+    ipcRenderer.invoke("request-faucet", amount, address),
+  listClaims: () => ipcRenderer.invoke("list-claims"),
+  submitClaim: (destination, amount) =>
+    ipcRenderer.invoke("submit-claim", { destination, amount }),
   sendMessage: (channel, data) => {
     let validChannels = ["toMain"];
     if (validChannels.includes(channel)) {

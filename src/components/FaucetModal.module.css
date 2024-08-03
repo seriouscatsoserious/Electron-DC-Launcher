@@ -1,0 +1,114 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: var(--modal-bg);
+  padding: 24px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  margin: 20px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modalTitle {
+  font-size: 24px;
+  color: var(--modal-text);
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--modal-text);
+  padding: 4px;
+}
+
+.inputGroup {
+  margin-bottom: 15px;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--modal-text);
+}
+
+.inputGroup input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--btn-bg);
+  border-radius: 4px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.submitButton {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--download-btn);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.submitButton:hover {
+  background-color: var(--download-btn-hover);
+}
+
+.submitButton:disabled {
+  background-color: var(--btn-bg);
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--stop-btn);
+  margin-top: 10px;
+}
+
+.success {
+  color: var(--run-btn);
+  margin-top: 10px;
+}
+
+.claimsList {
+  margin-top: 20px;
+}
+
+.claimsList h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: var(--modal-text);
+}
+
+.claimsList ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.claimsList li {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--modal-text);
+}
