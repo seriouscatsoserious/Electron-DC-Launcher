@@ -37,6 +37,8 @@ To install the Drivechain Launcher, follow these steps:
    ```sh
    npm install
    ```
+4. **Update your local copy**:
+   After pulling changes from the repository, run `npm install` again to update dependencies.
 
 ## 🚀 Usage
 
