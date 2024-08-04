@@ -55,7 +55,7 @@
 
 .inputGroup input {
   width: 100%;
-  max-width: 380px; /* Adjust this value as needed */
+  max-width: 385px; /* Adjust this value as needed */
   padding: 8px;
   border: 1px solid var(--btn-bg);
   border-radius: 4px;
