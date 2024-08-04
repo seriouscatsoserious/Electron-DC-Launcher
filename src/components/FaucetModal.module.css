@@ -15,8 +15,8 @@
   background-color: var(--modal-bg);
   padding: 24px;
   border-radius: 8px;
-  width: 100%;
-  max-width: 500px;
+  width: 90%;
+  max-width: 400px;
   max-height: 80vh;
   overflow-y: auto;
   margin: 20px;
@@ -26,7 +26,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 36px;
 }
 
 .modalTitle {
@@ -44,7 +44,7 @@
 }
 
 .inputGroup {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .inputGroup label {
@@ -55,22 +55,59 @@
 
 .inputGroup input {
   width: 100%;
+  max-width: 380px; /* Adjust this value as needed */
   padding: 8px;
   border: 1px solid var(--btn-bg);
   border-radius: 4px;
   background-color: var(--bg-color);
   color: var(--text-color);
+  transition:
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.inputGroup input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-color);
+}
+
+.inputError,
+.inputGroup input.inputError {
+  border-color: var(--stop-btn);
+  box-shadow: 0 0 0 1px var(--stop-btn);
+}
+
+.errorContainer {
+  min-height: 16px;
+  margin-top: 8px;
+}
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  color: var(--stop-btn);
+  font-size: 14px;
+}
+
+.errorMessage svg {
+  margin-right: 5px;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 
 .submitButton {
-  width: 100%;
-  padding: 10px;
+  padding: 10px 20px;
   background-color: var(--download-btn);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  transition: background-color 0.3s ease;
 }
 
 .submitButton:hover {
@@ -90,25 +127,4 @@
 .success {
   color: var(--run-btn);
   margin-top: 10px;
-}
-
-.claimsList {
-  margin-top: 20px;
-}
-
-.claimsList h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: var(--modal-text);
-}
-
-.claimsList ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-.claimsList li {
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: var(--modal-text);
 }
