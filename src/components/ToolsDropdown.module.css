@@ -1,0 +1,77 @@
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdownToggle {
+  /* Styles are mostly inherited from NavBar.module.css */
+}
+
+.dropdownMenu {
+  position: fixed;
+  top: 60px; /* Match the Download modal's top distance */
+  left: auto; /* Reset any previous left positioning */
+  right: auto; /* Reset any previous right positioning */
+  transform: none; /* Remove any centering transform */
+  background-color: var(--modal-bg);
+  min-width: 160px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  color: var(--modal-text);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease-in-out,
+    visibility 0.3s ease-in-out;
+}
+
+.dropdownMenu.fadeIn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.dropdownMenu.fadeOut {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.dropdownMenu li {
+  padding: 10px 16px;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.dropdownMenu li:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.light) .dropdownMenu {
+  background-color: var(--download-item-bg);
+}
+
+:global(.light) .dropdownMenu li {
+  color: var(--download-item-text);
+}
+
+:global(.light) .dropdownMenu li:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+:global(.dark) .dropdownMenu {
+  background-color: var(--download-item-bg);
+}
+
+:global(.dark) .dropdownMenu li {
+  color: var(--download-item-text);
+}
+
+:global(.dark) .dropdownMenu li:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}

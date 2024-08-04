@@ -66,6 +66,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   color: var(--text-color);
+  padding-top: 30px;
 }
 
 .App-header {
@@ -150,7 +151,7 @@ body {
 }
 
 .App > div:not(nav) {
-  margin-top: 20px;
+  /* margin-top: 20px; */
 }
 
 code {

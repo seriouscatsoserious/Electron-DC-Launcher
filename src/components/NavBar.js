@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import DownloadIcon from './DownloadIcon';
+import ToolsDropdown from './ToolsDropdown';
 import styles from './NavBar.module.css';
 
 const NavBar = () => {
@@ -9,56 +10,49 @@ const NavBar = () => {
     <nav className={styles.nav}>
       <ul className={styles.navList}>
         <li>
-          <NavLink 
-            to="/" 
-            end 
-            className={({ isActive }) => 
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
               `${styles.navLink} ${isActive ? styles.active : ''}`
             }
           >
             Nodes
           </NavLink>
         </li>
-        <li>
-          <NavLink 
-            to="/wallet" 
-            className={({ isActive }) => 
+        {/* <li>
+          <NavLink
+            to="/wallet"
+            className={({ isActive }) =>
               `${styles.navLink} ${isActive ? styles.active : ''}`
             }
           >
             Wallet
           </NavLink>
-        </li>
+        </li> */}
         <li>
-          <NavLink 
-            to="/tools" 
-            className={({ isActive }) => 
-              `${styles.navLink} ${isActive ? styles.active : ''}`
-            }
-          >
-            Tools
-          </NavLink>
+          <ToolsDropdown />
         </li>
-        <li>
-          <NavLink 
-            to="/settings" 
-            className={({ isActive }) => 
+        {/* <li>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
               `${styles.navLink} ${isActive ? styles.active : ''}`
             }
           >
             Settings
           </NavLink>
-        </li>
-        <li>
-          <NavLink 
-            to="/other" 
-            className={({ isActive }) => 
+        </li> */}
+        {/* <li>
+          <NavLink
+            to="/other"
+            className={({ isActive }) =>
               `${styles.navLink} ${isActive ? styles.active : ''}`
             }
           >
             Other
           </NavLink>
-        </li>
+        </li> */}
       </ul>
       <div className={styles.iconContainer}>
         <DownloadIcon />

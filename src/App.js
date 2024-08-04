@@ -5,9 +5,10 @@ import './scrollbar.css';
 import NavBar from './components/NavBar';
 import Nodes from './components/Nodes';
 import Wallet from './components/Wallet';
-import Tools from './components/Tools';
+// import Tools from './components/Tools';
 import Settings from './components/Settings';
 import Other from './components/Other';
+import FaucetModal from './components/FaucetModal';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 function AppContent() {
@@ -24,10 +25,11 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Nodes />} />
           <Route path="/wallet" element={<Wallet />} />
-          <Route path="/tools" element={<Tools />} />
+          {/* <Route path="/tools" element={<Tools />} /> */}
           <Route path="/settings" element={<Settings />} />
           <Route path="/other" element={<Other />} />
         </Routes>
+        <FaucetModal />
       </div>
     </Router>
   );
