@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Other from './components/Other';
 import FaucetModal from './components/FaucetModal';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import CUSF from './components/CUSF';
 
 function AppContent() {
   const { isDarkMode } = useTheme();
@@ -28,6 +29,7 @@ function AppContent() {
           {/* <Route path="/tools" element={<Tools />} /> */}
           <Route path="/settings" element={<Settings />} />
           <Route path="/other" element={<Other />} />
+          <Route path="/cusf" element={<CUSF />} />
         </Routes>
         <FaucetModal />
       </div>

@@ -19,6 +19,16 @@ const NavBar = () => {
           >
             Nodes
           </NavLink>
+        </li>        
+        <li>
+          <NavLink
+            to="/cusf"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.active : ''}`
+            }
+          >
+            CUSF
+          </NavLink>
         </li>
         {/* <li>
           <NavLink
@@ -33,6 +43,7 @@ const NavBar = () => {
         <li>
           <ToolsDropdown />
         </li>
+
         {/* <li>
           <NavLink
             to="/settings"
