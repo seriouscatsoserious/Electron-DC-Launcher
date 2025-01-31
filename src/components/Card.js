@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import ChainSettingsModal from './ChainSettingsModal';
+import './StatusLight.css';
 import ForceStopModal from './ForceStopModal';
 import SettingsIcon from './SettingsIcon';
 import Tooltip from './Tooltip';
@@ -23,7 +24,48 @@ const Card = ({
   const [lastActionTime, setLastActionTime] = useState(0);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [processHealth, setProcessHealth] = useState('offline'); // 'healthy', 'warning', 'error', 'offline'
+  const [blockCount, setBlockCount] = useState(-1);
   const buttonRef = useRef(null);
+
+  // Periodic chain status / health check
+  useEffect(() => {
+    const fetchBlockCount = async () => {
+      try {
+        const count = await window.electronAPI.getChainBlockCount(chain.id);
+        console.log("new count: ", count)
+        setBlockCount(count);
+      } catch (error) {
+        setBlockCount(-1)
+        console.error('Failed to fetch block count:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchBlockCount();
+
+    const interval = setInterval(() => {
+      fetchBlockCount();
+
+      if (chain.status === 'stopping' || chain.status === 'stopped') {
+        setProcessHealth('offline');
+      } 
+      else 
+      if (blockCount === -1) {
+          setProcessHealth('offline');
+      }
+      else 
+      if (blockCount === 0) {
+          setProcessHealth('warning');
+      }
+      else
+      if (blockCount > 0) {
+          setProcessHealth('healthy');
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [chain.id, chain.status, blockCount]);
 
   const checkDependencies = () => {
     if (!chain.dependencies || chain.dependencies.length === 0) return true;
@@ -135,6 +177,7 @@ const Card = ({
           console.log(`Stopping chain ${chain.id}`);
           // Update UI immediately to show stopping state
           onUpdateChain(chain.id, { status: 'stopping' });
+          setProcessHealth('offline');
           await onStop(chain.id);
         } catch (error) {
           console.error('Stop failed:', error);
