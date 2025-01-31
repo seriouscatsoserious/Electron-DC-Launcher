@@ -16,7 +16,6 @@ const ResetAllModal = ({ onConfirm, onClose }) => {
     <div 
       className={`${styles.modalOverlay} ${styles.dangerOverlay} ${isDarkMode ? styles.dark : styles.light}`} 
       onClick={handleOverlayClick}
-      style={{ position: 'absolute' }}
     >
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
@@ -27,14 +26,14 @@ const ResetAllModal = ({ onConfirm, onClose }) => {
         </div>
         <div className={styles.modalBody}>
           <p>Warning: This will reset all chains to their default state and delete ALL data, including:</p>
-          <ul className={styles.modalBody}>
+          <ul>
             <li>All blockchain data</li>
             <li>All wallet data and private keys</li>
             <li>All transaction history</li>
             <li>All custom chain configurations</li>
           </ul>
           <p className={styles.warningText}>
-            This action cannot be undone. Make sure you have backed up any important data.
+            This action cannot be undone.
           </p>
         </div>
         <div className={styles.buttonContainer}>

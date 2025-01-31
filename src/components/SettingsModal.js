@@ -108,9 +108,7 @@ const SettingsModal = ({ onResetComplete }) => {
               <span className={styles.slider}></span>
             </label>
           </div>
-        </div>
 
-        <div className={styles.settingGroup}>
           <div className={styles.settingRow}>
             <span className={styles.settingLabel}>Master Wallet Directory</span>
             <button 

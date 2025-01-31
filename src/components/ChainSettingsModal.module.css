@@ -12,7 +12,9 @@
 }
 
 .dangerOverlay {
-  background-color: rgba(220, 53, 69, 0.2);
+  background-color: rgba(220, 53, 69, 0.55);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px); /* For Safari support */
 }
 
 .modalContent {
@@ -197,8 +199,14 @@
 
 .modalBody ul {
   list-style: disc;
-  padding-left: 20px;
-  margin: 10px 0;
+  padding-left: 24px;
+  margin: 15px 0;
+}
+
+.modalBody ul li {
+  margin: 8px 0;
+  color: var(--text-color);
+  line-height: 1.4;
 }
 
 .warningText {

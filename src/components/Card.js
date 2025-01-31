@@ -56,7 +56,9 @@ const Card = ({
     } else if (chain.status === 'not_downloaded' || 
         chain.status === 'downloaded' || 
         chain.status === 'stopped' ||
-        chain.status === 'stopping') {
+        chain.status === 'stopping' ||
+        chain.status === 'downloading' ||
+        chain.status === 'extracting') {
       setProcessHealth('offline');
     } else if (chain.status === 'running' || 
                chain.status === 'starting' || 

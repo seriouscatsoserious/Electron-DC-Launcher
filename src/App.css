@@ -72,7 +72,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   color: var(--text-color);
-  padding-top: 30px;
+  padding-top: 36px;
 }
 
 .App-header {
@@ -261,9 +261,6 @@ body {
   box-sizing: border-box;
 }
 
-.chain-section {
-  margin-bottom: 2rem;
-}
 
 .chain-heading-row {
   display: flex;

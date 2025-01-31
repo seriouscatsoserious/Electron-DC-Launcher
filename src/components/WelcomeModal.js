@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './WelcomeModal.module.css';
+import { ArrowLeft } from 'lucide-react';
 
 const WelcomeModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState('default'); // 'default', 'restore', or 'advanced'
@@ -184,7 +185,7 @@ const WelcomeModal = ({ isOpen, onClose }) => {
             setError('');
           }}
         >
-          ← Back
+          <ArrowLeft size={20} />
         </button>
         <h2>Restore Wallet</h2>
       </div>
@@ -237,7 +238,7 @@ const WelcomeModal = ({ isOpen, onClose }) => {
             setError('');
           }}
         >
-          ← Back
+          <ArrowLeft size={20} />
         </button>
         <h2>Advanced Wallet Creation</h2>
       </div>
@@ -275,7 +276,8 @@ const WelcomeModal = ({ isOpen, onClose }) => {
       </div>
 
       <div className={styles.inputGroup}>
-        <textarea
+        <input
+          type="text"
           value={entropyInput}
           onChange={(e) => {
             const value = e.target.value;
@@ -291,32 +293,32 @@ const WelcomeModal = ({ isOpen, onClose }) => {
             ? "Enter hex (16/32/64 chars) or use Generate Random for valid entropy"
             : "Enter text to be hashed into entropy"
           }
-          className={styles.entropyInput}
+          className={styles.input}
         />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '8px' }}>
-          {error && <div className={styles.error} style={{ margin: 0, textAlign: 'left', flex: 1 }}>{error}</div>}
-          <button
-            className={styles.randomButton}
-            style={{ marginLeft: error ? '16px' : 'auto' }}
-            onClick={async () => {
-              try {
-                const result = await window.electronAPI.generateRandomEntropy();
-                if (result.success) {
-                  // For hex mode, use full 32 bytes (64 chars), for text mode use 16 bytes (32 chars)
-                  setEntropyInput(isHexMode ? result.data : result.data.slice(0, 32));
-                  setError('');
-                } else {
-                  setError(result.error);
-                }
-              } catch (error) {
-                console.error('Error generating random entropy:', error);
-                setError(error.message || 'Failed to generate random entropy');
+      </div>
+
+      <div className={styles.buttonContainer}>
+        {error && <div className={styles.error} style={{ margin: 0, textAlign: 'left', flex: 1 }}>{error}</div>}
+        <button
+          className={styles.randomButton}
+          onClick={async () => {
+            try {
+              const result = await window.electronAPI.generateRandomEntropy();
+              if (result.success) {
+                // For hex mode, use full 32 bytes (64 chars), for text mode use 16 bytes (32 chars)
+                setEntropyInput(isHexMode ? result.data : result.data.slice(0, 32));
+                setError('');
+              } else {
+                setError(result.error);
               }
-            }}
-          >
-            Generate Random
-          </button>
-        </div>
+            } catch (error) {
+              console.error('Error generating random entropy:', error);
+              setError(error.message || 'Failed to generate random entropy');
+            }
+          }}
+        >
+          Generate Random
+        </button>
       </div>
 
       <div className={styles.previewSection}>

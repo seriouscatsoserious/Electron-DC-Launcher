@@ -16,7 +16,6 @@ const WalletWarningModal = ({ onConfirm, onClose }) => {
     <div 
       className={`${styles.modalOverlay} ${styles.dangerOverlay} ${isDarkMode ? styles.dark : styles.light}`} 
       onClick={handleOverlayClick}
-      style={{ position: 'absolute' }}
     >
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
@@ -27,14 +26,14 @@ const WalletWarningModal = ({ onConfirm, onClose }) => {
         </div>
         <div className={styles.modalBody}>
           <p>Manually modifying wallet files can lead to:</p>
-          <ul className={styles.modalBody}>
+          <ul>
             <li>Permanent loss of funds</li>
             <li>Wallet data corruption</li>
             <li>Chain synchronization issues</li>
             <li>Security vulnerabilities</li>
           </ul>
           <p className={styles.warningText}>
-            Only proceed if you know exactly what you're doing. Changes to wallet files cannot be undone.
+            Only proceed if you know exactly what you're doing.
           </p>
         </div>
         <div className={styles.buttonContainer}>

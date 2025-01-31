@@ -355,7 +355,6 @@ function Nodes() {
 
   return (
     <div className="Nodes">
-      <h1>Drivechain Launcher</h1>
       <div className="chain-list">
         <div className="chain-section">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -421,7 +420,7 @@ function Nodes() {
           </div>
         </div>
         <div className="chain-section">
-          <h2 className="chain-heading">Layer 2</h2>
+          <h2 className="chain-heading" style={{ marginBottom: '10px' }}>Layer 2</h2>
           <div className="l2-chains">
             {chains
               .filter(chain => chain.chain_type === 2)

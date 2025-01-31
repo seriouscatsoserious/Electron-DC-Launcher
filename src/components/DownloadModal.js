@@ -39,10 +39,9 @@ const DownloadModal = memo(() => {
   const activeDownloads = useMemo(() => {
     return Object.entries(downloads).filter(
       ([_, download]) =>
-        download.status === 'downloading' || 
-        download.status === 'extracting' ||
-        download.status === 'syncing' ||
-        (download.type === 'ibd' && download.progress < 100)
+        (download.status === 'downloading' || 
+        download.status === 'extracting') &&
+        download.type !== 'ibd'
     );
   }, [downloads]);
 
@@ -111,12 +110,10 @@ const DownloadModal = memo(() => {
       resetTimer();
     };
 
-    const unsubscribeDownload = electronAPI.onDownloadStarted(handleDownloadStarted);
-    const unsubscribeSync = electronAPI.onBitcoinSyncStarted(handleDownloadStarted);
+    const unsubscribe = electronAPI.onDownloadStarted(handleDownloadStarted);
 
     return () => {
-      unsubscribeDownload();
-      unsubscribeSync();
+      unsubscribe();
     };
   }, [dispatch, resetTimer, isVisible]);
 

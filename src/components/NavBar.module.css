@@ -33,11 +33,6 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.navLink.active {
-  background-color: rgba(255, 255, 255, 0.2);
-  text-shadow: 0 0 1px currentColor;
-}
-
 .iconContainer {
   display: flex;
   align-items: center;
@@ -63,16 +58,6 @@
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-:global(.light) .navLink.active {
-  background-color: rgba(0, 0, 0, 0.1);
-  color: #000000;
-}
-
 :global(.dark) .navLink:hover {
   background-color: rgba(255, 255, 255, 0.1);
-}
-
-:global(.dark) .navLink.active {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
 }

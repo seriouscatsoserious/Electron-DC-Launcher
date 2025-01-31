@@ -30,6 +30,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideFastWithdrawalModal } from '../store/fastWithdrawalModalSlice';
+import { X, Clipboard } from 'lucide-react';
 import styles from './FastWithdrawalModal.module.css';
 
 const FastWithdrawalModal = () => {
@@ -131,8 +132,14 @@ const FastWithdrawalModal = () => {
 
   if (!isVisible) return null;
 
+  const handleOverlayClick = e => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
   return (
-    <div className={styles.modalOverlay}>
+    <div className={styles.modalOverlay} onClick={handleOverlayClick}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>Fast Withdrawal</h2>
@@ -141,7 +148,7 @@ const FastWithdrawalModal = () => {
             onClick={handleClose}
             className={styles.closeButton}
           >
-            ×
+            <X size={20} />
           </button>
         </div>
         <div className={styles.modalDescription}>
@@ -169,8 +176,9 @@ const FastWithdrawalModal = () => {
                     type="button"
                     onClick={() => handlePaste(setAmount)}
                     className={styles.pasteButton}
+                    title="Paste from clipboard"
                   >
-                    Paste
+                    <Clipboard size={18} />
                   </button>
                 </div>
               </div>
@@ -188,38 +196,41 @@ const FastWithdrawalModal = () => {
                     type="button"
                     onClick={() => handlePaste(setAddress)}
                     className={styles.pasteButton}
+                    title="Paste from clipboard"
                   >
-                    Paste
+                    <Clipboard size={18} />
                   </button>
                 </div>
               </div>
-              <div className={styles.horizontalInputs}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>
-                    Select fast withdrawal server
-                  </label>
-                  <select
-                    value={selectedServer}
-                    onChange={(e) => setSelectedServer(e.target.value)}
-                    className={styles.input}
-                  >
-                    <option value="localhost">Localhost</option>
-                    <option value="192.168.1.100">192.168.1.100</option>
-                    <option value="192.168.1.101">192.168.1.101</option>
-                  </select>
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>
-                    Select L2 to withdraw from
-                  </label>
-                  <select
-                    value={layer2Chain}
-                    onChange={(e) => setLayer2Chain(e.target.value)}
-                    className={styles.input}
-                  >
-                    <option value="Thunder">Thunder</option>
-                    <option value="BitNames">BitNames</option>
-                  </select>
+              <div className={styles.formGroup}>
+                <div className={styles.horizontalInputs}>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>
+                      Select fast withdrawal server
+                    </label>
+                    <select
+                      value={selectedServer}
+                      onChange={(e) => setSelectedServer(e.target.value)}
+                      className={styles.input}
+                    >
+                      <option value="localhost">Localhost</option>
+                      <option value="192.168.1.100">192.168.1.100</option>
+                      <option value="192.168.1.101">192.168.1.101</option>
+                    </select>
+                  </div>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>
+                      Select L2 to withdraw from
+                    </label>
+                    <select
+                      value={layer2Chain}
+                      onChange={(e) => setLayer2Chain(e.target.value)}
+                      className={styles.input}
+                    >
+                      <option value="Thunder">Thunder</option>
+                      <option value="BitNames">BitNames</option>
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className={styles.buttonGroup}>
@@ -264,32 +275,38 @@ const FastWithdrawalModal = () => {
               )}
               {!isCompleted && (
                 <form onSubmit={handleComplete}>
-                  <div className={styles.inputGroup}>
-                    <div className={styles.inputWithPaste}>
-                      <input
-                        type="text"
-                        value={paymentTxid}
-                        onChange={(e) => setPaymentTxid(e.target.value)}
-                        placeholder="Enter payment transaction ID"
-                        className={styles.input}
-                        required
-                      />
+                  <div className={styles.formGroup}>
+                    <div className={styles.inputGroup}>
+                      <label className={styles.inputLabel}>
+                        Payment Transaction ID
+                      </label>
+                      <div className={styles.inputWithPaste}>
+                        <input
+                          type="text"
+                          value={paymentTxid}
+                          onChange={(e) => setPaymentTxid(e.target.value)}
+                          placeholder="Enter payment transaction ID"
+                          className={styles.input}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handlePaste(setPaymentTxid)}
+                          className={styles.pasteButton}
+                          title="Paste from clipboard"
+                        >
+                          <Clipboard size={18} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className={styles.buttonGroup}>
                       <button
-                        type="button"
-                        onClick={() => handlePaste(setPaymentTxid)}
-                        className={styles.pasteButton}
+                        type="submit"
+                        className={styles.submitButton}
                       >
-                        Paste
+                        Complete Withdrawal
                       </button>
                     </div>
-                  </div>
-                  <div className={styles.buttonGroup}>
-                    <button
-                      type="submit"
-                      className={styles.submitButton}
-                    >
-                      Complete Withdrawal
-                    </button>
                   </div>
                 </form>
               )}

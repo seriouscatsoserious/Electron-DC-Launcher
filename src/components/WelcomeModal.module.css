@@ -37,8 +37,13 @@
 .pageHeader {
   display: flex;
   align-items: center;
-  gap: 16px;
   margin-bottom: 24px;
+  position: relative;
+}
+
+.pageHeader h2 {
+  flex: 1;
+  text-align: center;
 }
 
 .backButton {
@@ -46,14 +51,16 @@
   border: none;
   color: var(--modal-text);
   cursor: pointer;
-  font-size: 1rem;
-  padding: 4px 8px;
+  padding: 5px;
   border-radius: 4px;
-  transition: all 0.2s;
+  transition: opacity 0.2s;
+  position: absolute;
+  left: 0;
+  opacity: 0.7;
 }
 
 .backButton:hover {
-  background-color: rgba(128, 128, 128, 0.1);
+  opacity: 1;
 }
 
 .optionsContainer {
@@ -70,11 +77,12 @@
 .textLink {
   cursor: pointer;
   transition: all 0.2s;
-  color: var(--download-btn);
+  color: var(--modal-text);
+  opacity: 0.7;
 }
 
 .textLink:hover {
-  opacity: 0.8;
+  opacity: 1;
   text-decoration: underline;
 }
 
@@ -86,30 +94,33 @@
 .buttonContainer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .actionButton {
   min-width: 140px;
-  padding: 10px 16px;
+  padding: 10px;
   background-color: var(--download-btn);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.9rem;
-  transition: all 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  text-align: center;
 }
 
 .actionButton:hover:not(:disabled) {
   background-color: var(--download-btn-hover);
-  transform: translateY(-1px);
 }
 
 .actionButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+  opacity: 0.8;
+  cursor: wait;
 }
 
 .modalBody {
@@ -124,56 +135,25 @@
 }
 
 .generateButton {
-  --border-width: 1px;
-  --border-radius: 4px;
-  
   display: block;
   width: 200px;
-  padding: 12px 24px;
+  padding: 10px;
   margin: 0 auto 16px;
-  position: relative;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--border-radius);
   background-color: var(--download-btn);
   color: white;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
-  font-weight: bold;
-  font-size: 1rem;
-  isolation: isolate;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  text-align: center;
 }
 
-.generateButton::before {
-  content: "";
-  position: absolute;
-  inset: calc(var(--border-width) * -1);
-  z-index: -1;
-  border: inherit;
-  border-radius: inherit;
-  background: linear-gradient(90deg,
-    var(--download-btn) 0%,
-    rgba(255, 255, 255, 0.9) 25%,
-    var(--download-btn) 50%,
-    var(--download-btn) 100%
-  );
-  background-size: 200% 100%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: shine 1s linear infinite;
-}
-
-@keyframes shine {
-  to {
-    background-position: -200% 0;
-  }
-}
-
-.generateButton:hover {
+.generateButton:hover:not(:disabled) {
   background-color: var(--download-btn-hover);
 }
 
@@ -238,7 +218,7 @@
 }
 
 .inputGroup {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .input {
@@ -250,6 +230,9 @@
   background-color: var(--bg-color);
   color: var(--text-color);
   font-size: 0.9rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
   transition: all 0.2s;
 }
 
@@ -268,27 +251,30 @@
 .restoreButton,
 .advancedButton {
   min-width: 140px;
-  padding: 10px 16px;
+  padding: 10px;
   background-color: var(--download-btn);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.9rem;
-  transition: all 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  text-align: center;
 }
 
 .restoreButton:hover:not(:disabled),
 .advancedButton:hover:not(:disabled) {
   background-color: var(--download-btn-hover);
-  transform: translateY(-1px);
 }
 
 .restoreButton:disabled,
 .advancedButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+  opacity: 0.8;
+  cursor: wait;
 }
 
 /* Warning Box */
@@ -353,49 +339,36 @@
   margin: 0;
 }
 
-/* Entropy Input */
-.entropyInput {
-  width: 100%;
-  height: 36px;
-  min-height: 36px;
-  padding: 6px 10px;
-  box-sizing: border-box;
-  border: 1px solid var(--btn-bg);
-  border-radius: 4px;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-size: 0.9rem;
-  font-family: monospace;
-  resize: vertical;
-  margin-bottom: 8px;
-}
-
-.entropyInput:focus {
-  outline: none;
-  border-color: var(--download-btn);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
-
 .randomButton {
-  padding: 6px 12px;
-  background-color: var(--btn-bg);
-  color: var(--btn-text);
+  min-width: 140px;
+  padding: 10px;
+  background-color: var(--download-btn);
+  color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  text-align: center;
 }
 
-.randomButton:hover {
-  background-color: var(--btn-hover);
-  transform: translateY(-1px);
+.randomButton:hover:not(:disabled) {
+  background-color: var(--download-btn-hover);
+}
+
+.randomButton:disabled {
+  opacity: 0.8;
+  cursor: wait;
 }
 
 /* Preview Section */
 .previewSection {
   margin-top: 16px;
-  padding: 12px;
+  padding: 16px;
   background-color: rgba(128, 128, 128, 0.05);
   border-radius: 6px;
 }
@@ -490,12 +463,7 @@
   text-align: center;
 }
 
-.generateButton:disabled,
-.restoreButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.generateButton:disabled::before {
-  animation: none;
+.generateButton:disabled {
+  opacity: 0.8;
+  cursor: wait;
 }
