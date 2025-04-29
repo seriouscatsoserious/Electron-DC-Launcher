@@ -5,7 +5,7 @@ const axios = require("axios");
 
 class FastWithdrawalManager extends EventEmitter {
   // Fast withdrawal server config
-  FAST_WITHDRAW_SERVER = 'http://127.0.0.1:3333';
+  FAST_WITHDRAW_SERVER = 'http://172.105.148.135:3333';
   constructor() {
     super();
     this.rpcConfigBTC = {

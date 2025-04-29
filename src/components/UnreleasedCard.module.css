@@ -1,0 +1,56 @@
+/* Extend from Card styles */
+.card {
+  composes: card from './Card.module.css';
+  cursor: default;
+  padding: 16px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.titleSection {
+  text-align: center;
+  width: 100%;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--base-font-size);
+  line-height: 1.2;
+  font-weight: 600;
+  text-align: center;
+}
+
+.descriptionSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  width: 100%;
+}
+
+.description {
+  margin: 0;
+  font-size: var(--base-font-size);
+}
+
+.link {
+  color: var(--text-color);
+  font-size: 0.9rem;
+  word-break: break-all;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  text-align: center;
+}
+
+.link:hover {
+  opacity: 1;
+}

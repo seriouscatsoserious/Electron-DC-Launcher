@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build
 
 on:
   push:
@@ -12,69 +12,272 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest-large, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: '20.x'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build React app
         env:
           CI: false
-        run: npm run build
-        
-      - name: Build Electron app
-        if: matrix.os != 'ubuntu-latest'
+        run: npm run react-build
+
+      # ---------------------------------
+      # Windows Build
+      # ---------------------------------
+      - name: Build Electron app (Windows)
+        if: matrix.os == 'windows-latest'
+        env:
+          DEBUG: electron-builder
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run electron-build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # ---------------------------------
+      # Linux Build
+      # ---------------------------------
       - name: Build Electron app (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: |
-          npm run electron-build
-          # Remove chrome-sandbox from both unpacked and packaged versions
-          rm -f dist/linux-unpacked/chrome-sandbox
-          cd dist
-          tar xzf drivechain-launcher-*.tar.gz
-          rm -f drivechain-launcher-*/chrome-sandbox
-          tar czf drivechain-launcher-*.tar.gz drivechain-launcher-*/
-          rm -rf drivechain-launcher-*/
+        if: matrix.os == 'ubuntu-latest-large'
         env:
+          DEBUG: electron-builder
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Show electron-builder version
+          npx electron-builder --version
+          
+          # List contents before build
+          ls -la
+          
+          # Run build with verbose logging for Linux formats
+          # AppImage - Universal portable format
+          # DEB - Debian/Ubuntu systems
+          npx electron-builder --linux AppImage deb --x64
+          
+          # Show build output directory
+          echo "Build output directory contents:"
+          ls -la dist/
 
+      # ---------------------------------
+      # macOS Build
+      # ---------------------------------
+      - name: Build & Sign Electron app (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          # Provide ONLY the .p12 certificate for code signing.
+          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+          # Remove or omit the Apple API key vars from electron-builder,
+          # so it doesn't attempt notarization internally.
+          DEBUG: electron-builder
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Remove any "notarize" block from package.json or set "notarize": false
+          # to ensure electron-builder won't attempt notarization automatically.
+          npm run electron-build
+
+      - name: Setup notarization credentials
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > notarization_api_key.p8
+
+      - name: Submit app for notarization
+        if: matrix.os == 'macos-latest'
+        env:
+          GODOT_MACOS_NOTARIZATION_API_KEY_ID: ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }}
+          GODOT_MACOS_NOTARIZATION_API_KEY: ./notarization_api_key.p8
+          GODOT_MACOS_NOTARIZATION_API_UUID: ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
+        run: |
+          # We'll assume your DMG name matches something like:
+          #   dist/Drivechain-Launcher-<version>-x64.dmg
+          # If you produce multiple DMGs (x64, arm64), pick the correct one or do both.
+          DMG_FILE=$(ls dist/*-x64.dmg | head -n 1)
+          if [ -z "$DMG_FILE" ]; then
+            echo "No x64 DMG found to notarize!"
+            exit 1
+          fi
+          echo "Submitting $DMG_FILE for notarization..."
+
+          echo "Running notarytool submit..."
+          request_uuid=$(xcrun notarytool submit "$DMG_FILE" \
+            --key "$GODOT_MACOS_NOTARIZATION_API_KEY" \
+            --key-id "$GODOT_MACOS_NOTARIZATION_API_KEY_ID" \
+            --issuer "$GODOT_MACOS_NOTARIZATION_API_UUID" \
+            --output-format json \
+            | jq -r '.id')
+          
+          echo "Notarization UUID: $request_uuid"
+          
+          echo "Waiting for notarization to complete..."
+          xcrun notarytool wait "$request_uuid" \
+            --key "$GODOT_MACOS_NOTARIZATION_API_KEY" \
+            --key-id "$GODOT_MACOS_NOTARIZATION_API_KEY_ID" \
+            --issuer "$GODOT_MACOS_NOTARIZATION_API_UUID"
+
+          echo "Stapling notarization..."
+          xcrun stapler staple "$DMG_FILE"
+
+      # ---------------------------------
+      # Upload Artifacts
+      # ---------------------------------
+      - name: Check Linux build output
+        if: matrix.os == 'ubuntu-latest-large'
+        run: |
+          echo "Checking build output..."
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not found"
+            exit 1
+          fi
+          find dist -type f -name "*.AppImage" || echo "No AppImage files found in dist/"
+          
       - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest-large'
         uses: actions/upload-artifact@v4
         with:
-          name: linux-artifacts
+          name: linux-build
           path: |
-            dist/drivechain-launcher-*.tar.gz
-          
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: error
+
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-artifacts
-          path: dist/Drivechain-Launcher-Setup-*.exe
-          
+          name: windows-build
+          path: |
+            dist/*.exe
+          if-no-files-found: error
+
       - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: macos-artifacts
+          name: macos-build
           path: |
-            dist/Drivechain-Launcher-*-x64.dmg
-            dist/Drivechain-Launcher-*-arm64.dmg
+            dist/*.dmg
+          if-no-files-found: error
+
+  # -------------------------------------
+  # Separate upload-to-releases job
+  # -------------------------------------
+  upload-to-releases:
+    name: Upload to releases.drivechain.info
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && github.repository_owner == 'LayerTwo-Labs'
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-build"
+          path: artifacts
+
+      - name: List downloaded files
+        run: |
+          echo "Artifacts directory contents:"
+          ls -la artifacts
+          echo "Linux build directory contents:"
+          ls -la artifacts/linux-build
+          echo "Windows build directory contents:"
+          ls -la artifacts/windows-build
+          echo "macOS build directory contents:"
+          ls -la artifacts/macos-build
+
+      - name: Process artifacts
+        run: |
+          # Process Linux artifacts
+          cd artifacts/linux-build
+          mv *.AppImage ../../drivechain-launcher-latest-x86_64-linux.AppImage
+          mv *.deb ../../drivechain-launcher-latest-x86_64-linux.deb
+          cd ../..
+          
+          # Process Windows artifact
+          cd artifacts/windows-build
+          echo "Windows build directory contents before processing:"
+          ls -la
+          
+          # Find the exact exe file
+          EXE_FILE=$(ls Drivechain-Launcher-Setup-*.exe 2>/dev/null || echo "")
+          if [ -z "$EXE_FILE" ]; then
+            echo "Error: No Windows exe file found"
+            exit 1
+          fi
+          echo "Found Windows exe file: $EXE_FILE"
+          
+          # Create zip file containing the exe
+          zip ../../drivechain-launcher-latest-windows.zip "$EXE_FILE"
+          cd ../..
+          
+          # Process macOS artifacts
+          cd artifacts/macos-build
+          echo "macOS build directory contents before processing:"
+          ls -la
+          
+          # Process arm64 DMG
+          ARM64_DMG=$(ls *-arm64.dmg 2>/dev/null || echo "")
+          if [ -z "$ARM64_DMG" ]; then
+            echo "Error: No arm64 DMG file found"
+            exit 1
+          fi
+          mv "$ARM64_DMG" ../../drivechain-launcher-latest-osx-arm64.dmg
+          
+          # Process x64 DMG
+          X64_DMG=$(ls *-x64.dmg 2>/dev/null || echo "")
+          if [ -z "$X64_DMG" ]; then
+            echo "Error: No x64 DMG file found"
+            exit 1
+          fi
+          mv "$X64_DMG" ../../drivechain-launcher-latest-osx-x64.dmg
+          cd ../..
+          
+          echo "Final files:"
+          ls -la drivechain-launcher-*
+
+      - name: Verify files exist
+        run: |
+          if [ ! -f "drivechain-launcher-latest-x86_64-linux.AppImage" ]; then
+            echo "Error: Linux AppImage file not found"
+            exit 1
+          fi
+          if [ ! -f "drivechain-launcher-latest-x86_64-linux.deb" ]; then
+            echo "Error: Linux DEB file not found"
+            exit 1
+          fi
+          if [ ! -f "drivechain-launcher-latest-windows.zip" ]; then
+            echo "Error: Windows zip file not found"
+            exit 1
+          fi
+          if [ ! -f "drivechain-launcher-latest-osx-arm64.dmg" ]; then
+            echo "Error: macOS arm64 DMG file not found"
+            exit 1
+          fi
+          if [ ! -f "drivechain-launcher-latest-osx-x64.dmg" ]; then
+            echo "Error: macOS x64 DMG file not found"
+            exit 1
+          fi
+
+      - name: Upload to releases.drivechain.info
+        uses: cross-the-world/ssh-scp-ssh-pipelines@latest
+        with:
+          host: 45.33.96.47
+          user: root
+          pass: ${{ secrets.RELEASES_SERVER_PW }}
+          port: 22
+          scp: |
+            'drivechain-launcher-latest-x86_64-linux.AppImage' => '/var/www/html/'
+            'drivechain-launcher-latest-x86_64-linux.deb' => '/var/www/html/'
+            'drivechain-launcher-latest-windows.zip' => '/var/www/html/'
+            'drivechain-launcher-latest-osx-arm64.dmg' => '/var/www/html/'
+            'drivechain-launcher-latest-osx-x64.dmg' => '/var/www/html/'

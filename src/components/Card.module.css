@@ -1,0 +1,170 @@
+.card {
+  margin: 0;
+  background-color: var(--card-bg);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  color: var(--text-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+
+.chainTypeSection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 0 8px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:global(.dark) .chainTypeSection {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.chainTypeBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.l1Badge {
+  background-color: rgba(247, 147, 26, 0.15);
+  color: #f7931a;
+}
+
+.l2Badge {
+  background-color: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.card:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+:global(.dark) .card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark) .card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.actionSection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 0 8px 0 0;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:global(.dark) .actionSection {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 180px;
+  padding: 0 16px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:global(.dark) .titleSection {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--base-font-size);
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.statusGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.statusText {
+  font-size: calc(var(--base-font-size) * 0.85);
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.statusLight {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.statusLight:global(.healthy) {
+  background-color: #2ecc71;
+  box-shadow: 0 0 3px #2ecc71;
+}
+
+.statusLight:global(.warning) {
+  background-color: #f1c40f;
+  box-shadow: 0 0 3px #f1c40f;
+}
+
+.statusLight:global(.error) {
+  background-color: #e74c3c;
+  box-shadow: 0 0 3px #e74c3c;
+}
+
+.statusLight:global(.offline) {
+  background-color: #95a5a6;
+}
+
+.descriptionSection {
+  flex: 1;
+  min-width: 180px;
+  padding: 0 16px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+:global(.dark) .descriptionSection {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.description {
+  font-size: calc(var(--base-font-size) * 0.9);
+  margin: 0;
+  line-height: 1.4;
+  opacity: 0.9;
+  text-align: center;
+  width: 100%;
+}
+
+.iconSection {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 100px;
+  padding: 0 0 0 16px;
+}
+
+.downloadInfo {
+  font-size: calc(var(--base-font-size) * 0.75);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.iconGroup {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}

@@ -1,0 +1,98 @@
+/* Main container */
+.container {
+  width: 100%;
+  height: calc(var(--window-height) - 24px);
+  overflow-y: auto;
+  padding-left: 10px;
+  padding-top: 18px;
+  padding-bottom: 5px;
+  box-sizing: border-box;
+}
+
+.containerWithQuotes {
+  composes: container;
+  padding-bottom: 60px; /* Add padding for quote ribbon */
+}
+
+/* Chain sections */
+.chainSection {
+  width: 100%;
+  max-width: var(--window-width);
+  margin: 0 auto var(--base-spacing);
+  box-sizing: border-box;
+}
+
+/* Add margin to the last chain section
+.chainSection:last-child {
+  margin-bottom: calc(var(--base-spacing) * 2);
+} */
+
+.chainHeading {
+  font-size: calc(var(--base-font-size) * 1.1);
+  font-weight: bold;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.l1ChainHeading {
+  composes: chainHeading;
+  margin: var(--base-spacing) 0 0 0;
+}
+
+.l2ChainHeading {
+  composes: chainHeading;
+  margin: calc(var(--base-spacing) * 0.25) 0;
+}
+
+/* Chain lists */
+.l1Chains,
+.l2Chains {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-spacing);
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.l1Chains {
+  margin-bottom: var(--base-spacing);
+}
+
+.l2Chains > div {
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Loading state */
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(var(--window-height) - 24px);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.loadingContent {
+  text-align: center;
+  padding: var(--base-spacing);
+}
+
+.loadingSpinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--card-bg);
+  border-top: 3px solid var(--download-btn);
+  border-radius: 50%;
+  margin: var(--base-spacing) auto;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

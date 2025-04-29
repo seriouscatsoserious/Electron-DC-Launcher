@@ -17,6 +17,7 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@grpc/grpc-js": "^1.12.5",
     "@grpc/proto-loader": "^0.7.13",
+    "@primer/octicons-react": "^19.14.0",
     "@reduxjs/toolkit": "^2.2.6",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
@@ -25,6 +26,7 @@
     "axios": "^1.7.2",
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.7",
+    "canvas-confetti": "^1.9.3",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron-dl": "^4.0.0",
@@ -51,7 +53,9 @@
     "react-eject": "react-scripts eject",
     "electron-build": "electron-builder",
     "build": "npm run react-build && npm run electron-build",
-    "start": "concurrently \"cross-env BROWSER=none npm run react-start\" \"wait-on http://localhost:3000 && electron . --no-sandbox\""
+    "start": "concurrently \"cross-env BROWSER=none npm run react-start\" \"wait-on http://localhost:3000 && electron --no-sandbox .\"",
+    "start:prod": "concurrently \"cross-env NODE_ENV=production BROWSER=none npm run react-start\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=production electron --no-sandbox .\"",
+    "generate-icons": "node scripts/generate-icons.js"
   },
   "eslintConfig": {
     "extends": [
@@ -84,30 +88,57 @@
     "productName": "Drivechain Launcher",
     "files": [
       "build/**/*",
-      "public/**/*"
+      "public/**/*",
+      {
+        "from": "src/data/proto",
+        "to": "src/data/proto"
+      },
+      {
+        "from": "node_modules/@grpc/proto-loader/node_modules/google-proto-files/google",
+        "to": "src/data/proto/google"
+      }
     ],
     "directories": {
-      "buildResources": "public"
+      "buildResources": "public",
+      "output": "dist"
     },
     "linux": {
       "target": [
-        "deb",
-        "tar.gz"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Development",
-      "maintainer": "Drivechain <support@drivechain.info>",
+      "artifactName": "Drivechain-Launcher-${version}.${ext}",
       "asarUnpack": [
-        "**/chrome-sandbox"
+        "node_modules/@grpc"
       ],
+      "maintainer": "Drivechain <support@drivechain.info>",
       "executableName": "drivechain-launcher",
       "executableArgs": [
         "--no-sandbox"
       ],
-      "artifactName": "Drivechain-Launcher-${version}-${arch}.${ext}"
+      "icon": "public"
     },
     "win": {
       "target": "nsis",
-      "artifactName": "Drivechain-Launcher-Setup-${version}.${ext}"
+      "artifactName": "Drivechain-Launcher-Setup-${version}.${ext}",
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": false,
+      "runAfterFinish": false,
+      "include": "installer.nsh"
     },
     "mac": {
       "target": [
@@ -120,7 +151,19 @@
         }
       ],
       "category": "public.app-category.developer-tools",
-      "artifactName": "Drivechain-Launcher-${version}-${arch}.${ext}"
+      "artifactName": "Drivechain-Launcher-${version}-${arch}.${ext}",
+      "icon": "public/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Please allow access to script browser applications to detect drivechain nodes.",
+        "NSCameraUsageDescription": "Application requests access to the device's camera.",
+        "NSMicrophoneUsageDescription": "Application requests access to the device's microphone.",
+        "NSDocumentsFolderUsageDescription": "Application requests access to the user's Documents folder.",
+        "NSDownloadsFolderUsageDescription": "Application requests access to the user's Downloads folder."
+      }
     }
   },
   "devDependencies": {
@@ -130,6 +173,12 @@
     "babel-jest": "^29.7.0",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
-    "prettier": "^3.3.3"
+    "png2icons": "^2.0.1",
+    "prettier": "^3.3.3",
+    "typescript": "4.9.5"
+  },
+  "overrides": {
+    "nth-check": "^2.1.1",
+    "postcss": "^8.5.3"
   }
 }

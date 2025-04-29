@@ -50,7 +50,7 @@ const ToolsDropdown = () => {
   useEffect(() => {
     if (isOpen && linkRef.current && dropdownRef.current) {
       const linkRect = linkRef.current.getBoundingClientRect();
-      dropdownRef.current.style.left = `${linkRect.left}px`;
+      dropdownRef.current.style.right = `${window.innerWidth - linkRect.right}px`;
     }
   }, [isOpen]);
 

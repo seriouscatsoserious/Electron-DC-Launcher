@@ -1,0 +1,81 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--modal-bg);
+  z-index: 1000;
+}
+
+.modalContent {
+  width: 100%;
+  height: 100%;
+  color: var(--modal-text);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: 24px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 24px;
+  color: var(--modal-text);
+  text-align: center;
+  flex: 1;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--modal-text);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: opacity 0.2s;
+  position: absolute;
+  right: 0;
+  opacity: 0.7;
+}
+
+.closeButton:hover {
+  opacity: 1;
+}
+
+.messageContent {
+  width: 100%;
+  max-width: 800px;
+  background-color: rgba(128, 128, 128, 0.05);
+  border-radius: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.messageContent p {
+  margin: 0 0 16px;
+  line-height: 1.5;
+  font-size: 1rem;
+  color: var(--modal-text);
+}
+
+.messageContent p:last-child {
+  margin-bottom: 0;
+}
+
+.messageContent strong {
+  color: var(--text-color);
+}

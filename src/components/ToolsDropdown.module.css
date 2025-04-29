@@ -9,10 +9,8 @@
 
 .dropdownMenu {
   position: fixed;
-  top: 60px; /* Match the Download modal's top distance */
-  left: auto; /* Reset any previous left positioning */
-  right: auto; /* Reset any previous right positioning */
-  transform: none; /* Remove any centering transform */
+  top: 48px;
+  right: 16px;
   background-color: var(--modal-bg);
   min-width: 160px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './WelcomeModal.module.css';
 import { ArrowLeft } from 'lucide-react';
+import SuccessPopup from './SuccessPopup';
 
 const WelcomeModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState('default'); // 'default', 'restore', or 'advanced'
@@ -8,6 +9,7 @@ const WelcomeModal = ({ isOpen, onClose }) => {
   const [passphrase, setPassphrase] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
   
   // Advanced mode states
   const [isHexMode, setIsHexMode] = useState(false);
@@ -98,7 +100,11 @@ const WelcomeModal = ({ isOpen, onClose }) => {
       if (!result.success) {
         throw new Error(result.error);
       }
-      onClose();
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+      }, 2500);
     } catch (error) {
       console.error('Error generating wallet:', error);
       setError(error.message || 'Failed to generate wallet');
@@ -121,7 +127,11 @@ const WelcomeModal = ({ isOpen, onClose }) => {
       if (!result.success) {
         throw new Error(result.error);
       }
-      onClose();
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+      }, 2500);
     } catch (error) {
       console.error('Error restoring wallet:', error);
       setError(error.message || 'Failed to restore wallet');
@@ -132,10 +142,10 @@ const WelcomeModal = ({ isOpen, onClose }) => {
 
   const renderDefaultPage = () => (
     <>
-      <h2>Welcome to DC Launcher! 🚀</h2>
+      <h2 style={{ marginBottom: '20px' }}>Welcome to Drivechain Launcher!</h2>
       <div className={styles.modalBody}>
         <p>
-          DC Launcher is your all-in-one tool for managing Drivechain nodes. Start and stop nodes, 
+          Drivechain Launcher is your all-in-one tool for managing Drivechain nodes. Start and stop nodes, 
           manage wallets, and interact with both mainchain and sidechains through a simple interface. 
           Let's begin by setting up your wallet!
         </p>
@@ -169,7 +179,7 @@ const WelcomeModal = ({ isOpen, onClose }) => {
             setError('');
           }}
         >
-          Advanced options
+          Paranoid mode
         </span>
       </div>
     </>
@@ -240,12 +250,11 @@ const WelcomeModal = ({ isOpen, onClose }) => {
         >
           <ArrowLeft size={20} />
         </button>
-        <h2>Advanced Wallet Creation</h2>
+        <h2>Paranoid Wallet Creation</h2>
       </div>
 
       <p style={{ marginBottom: '20px', color: 'var(--text-color)' }}>
-        Advanced mode provides more control over wallet generation with custom entropy and real-time BIP39 preview.
-        ⚠️ Only use this if you understand HD wallets and BIP39.
+        Paranoid mode provides more control over wallet generation with custom entropy and real-time BIP39 preview.
       </p>
 
       <div className={styles.modeToggle}>
@@ -290,15 +299,11 @@ const WelcomeModal = ({ isOpen, onClose }) => {
             }
           }}
           placeholder={isHexMode
-            ? "Enter hex (16/32/64 chars) or use Generate Random for valid entropy"
-            : "Enter text to be hashed into entropy"
+            ? "Enter hex or use Generate Random"
+            : "Enter text for entropy"
           }
           className={styles.input}
         />
-      </div>
-
-      <div className={styles.buttonContainer}>
-        {error && <div className={styles.error} style={{ margin: 0, textAlign: 'left', flex: 1 }}>{error}</div>}
         <button
           className={styles.randomButton}
           onClick={async () => {
@@ -321,6 +326,8 @@ const WelcomeModal = ({ isOpen, onClose }) => {
         </button>
       </div>
 
+      {error && <div className={styles.error} style={{ margin: 0, textAlign: 'left', flex: 1 }}>{error}</div>}
+
       <div className={styles.previewSection}>
         {preview ? (
           <>
@@ -339,6 +346,12 @@ const WelcomeModal = ({ isOpen, onClose }) => {
                     ) : (
                       preview.binaryStrings[i]
                     )}
+                  </div>
+                  <div className={styles.decimal}>
+                    {i === preview.words.length - 1 
+                      ? parseInt(preview.lastWordBinary, 2)
+                      : parseInt(preview.binaryStrings[i], 2)
+                    }
                   </div>
                 </div>
               ))}
@@ -383,7 +396,11 @@ const WelcomeModal = ({ isOpen, onClose }) => {
               });
 
               if (result.success) {
-                onClose();
+                setShowSuccess(true);
+                setTimeout(() => {
+                  setShowSuccess(false);
+                  onClose();
+                }, 2500);
               } else {
                 throw new Error(result.error);
               }
@@ -396,7 +413,7 @@ const WelcomeModal = ({ isOpen, onClose }) => {
           }}
           disabled={isGenerating || !entropyInput || !preview}
         >
-          {isGenerating ? 'Generating...' : 'Create Advanced Wallet'}
+          {isGenerating ? 'Generating...' : 'Create Paranoid Wallet'}
         </button>
       </div>
     </>
@@ -409,6 +426,7 @@ const WelcomeModal = ({ isOpen, onClose }) => {
         {currentPage === 'restore' && renderRestorePage()}
         {currentPage === 'advanced' && renderAdvancedPage()}
       </div>
+      {showSuccess && <SuccessPopup message="Wallet generated successfully!" />}
     </div>
   );
 };

@@ -19,7 +19,7 @@ const WalletWarningModal = ({ onConfirm, onClose }) => {
     >
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Warning: Wallet Directory Access</h2>
+          <h2 className={styles.modalTitle}>Wallet Directory Access</h2>
           <button className={styles.closeButton} onClick={onClose}>
             <X size={20} />
           </button>

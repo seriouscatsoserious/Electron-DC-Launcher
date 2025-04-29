@@ -1,247 +1,351 @@
 {
-  "schema_version": "1.0",
-  "chains": [
-      {
-          "id": "bitcoin",
-          "enabled": true,
-          "version": "",
-          "display_name": "Bitcoin (Patched)",
-          "description": "Bitcoin Core with additional patches",
-          "released": "yes",
-          "repo_url": "https://github.com/LayerTwo-Labs/bitcoin",
-          "directories": {
-              "base": {
-                  "linux": ".drivechain",
-                  "darwin": "Library/Application Support/Drivechain",
-                  "win32": "AppData/Roaming/Drivechain"
-              },
-              "wallet": "wallet.dat"
-          },
-          "extract_dir": {
-              "linux": "Drivechain-Launcher-Downloads/bitcoin",
-              "darwin": "Drivechain-Launcher-Downloads/bitcoin",
-              "win32": "Drivechain-Launcher-Downloads/bitcoin"
-          },
-          "download": {
-              "urls": {
-                  "linux": "https://releases.drivechain.info/L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "https://releases.drivechain.info/L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
-                  "win32": "https://releases.drivechain.info/L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
-              },
-              "sizes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu/bitcoind",
-              "darwin": "L1-bitcoin-patched-latest-x86_64-apple-darwin/bitcoind",
-              "win32": "L1-bitcoin-patched-latest-x86_64-w64-msvc/bitcoind.exe"
-          },
-          "network": {
-              "port": 8332
-          },
-          "chain_type": 0,
-          "slot": ""
-      },
-      {
-          "id": "enforcer",
-          "enabled": true,
-          "version": "",
-          "display_name": "BIP 300/301 Enforcer",
-          "description": "Enforcer for BIP 300/301 functionality",
-          "released": "yes",
-          "repo_url": "https://github.com/LayerTwo-Labs/mainchain",
-          "directories": {
-              "base": {
-                  "linux": ".local/share/bip300301_enforcer",
-                  "darwin": "Library/Application Support/bip300301_enforcer",
-                  "win32": "AppData/Roaming/bip300301_enforcer"
-              },
-              "wallet": "wallet.db"
-          },
-          "extract_dir": {
-              "linux": "Drivechain-Launcher-Downloads/enforcer",
-              "darwin": "Drivechain-Launcher-Downloads/enforcer",
-              "win32": "Drivechain-Launcher-Downloads/enforcer"
-          },
-          "download": {
-                  "darwin": "https://releases.drivechain.info/bip300301-enforcer-latest-x86_64-apple-darwin.zip",
-                  "win32": "https://releases.drivechain.info/bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
-              },
-              "sizes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu/bip300301-enforcer-latest-x86_64-unknown-linux-gnu",
-              "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin/bip300301-enforcer-latest-x86_64-apple-darwin",
-              "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu/bip300301-enforcer-latest-x86_64-pc-windows-gnu.exe"
-          },
-          "network": {
-              "port": 0
-          },
-          "chain_type": 0,
-          "slot": ""
-      },
-      {
-          "id": "bitwindow",
-          "enabled": true,
-          "version": "",
-          "display_name": "BitWindow",
-          "description": "BitWindow interface",
-          "repo_url": "https://github.com/LayerTwo-Labs/bitwindow",
-          "directories": {
-              "base": {
-                  "linux": ".local/share/bitwindow",
-                  "darwin": "Library/Application Support/bitwindow",
-                  "win32": "AppData/Roaming/bitwindow"
-              },
-              "wallet": ""
-          },
-          "extract_dir": {
-              "linux": "Drivechain-Launcher-Downloads/bitwindow",
-              "darwin": "Drivechain-Launcher-Downloads/bitwindow",
-              "win32": "Drivechain-Launcher-Downloads/bitwindow"
-          },
-          "download": {
-              "urls": {
-                  "linux": "https://releases.drivechain.info/BitWindow-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "https://releases.drivechain.info/BitWindow-latest-x86_64-apple-darwin.zip",
-                  "win32": "https://releases.drivechain.info/BitWindow-latest-x86_64-pc-windows-msvc.zip"
-              },
-              "sizes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "bitwindow",
-              "darwin": "bitwindow",
-              "win32": "bitwindow.exe"
-          },
-          "network": {
-              "port": 0
-          },
-          "chain_type": 0,
-          "slot": ""
-      },
-      {
-          "id": "thunder",
-          "enabled": true,
-          "version": "",
-          "display_name": "Thunder",
-          "description": "A high performance largeblock sidechain",
-          "repo_url": "https://github.com/LayerTwo-Labs/thunder-rust",
-          "directories": {
-              "base": {
-                  "linux": ".local/share/thunder",
-                  "darwin": "Library/Application Support/thunder",
-                  "win32": "AppData/Roaming/thunder"
-              },
-              "wallet": "data/thunder/wallet.mdb"
-          },
-          "extract_dir": {
-              "linux": "Drivechain-Launcher-Downloads/thunder",
-              "darwin": "Drivechain-Launcher-Downloads/thunder",
-              "win32": "Drivechain-Launcher-Downloads/thunder"
-          },
-          "download": {
-              "urls": {
-                  "linux": "https://releases.drivechain.info/L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "https://releases.drivechain.info/L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
-                  "win32": "https://releases.drivechain.info/L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
-              },
-              "sizes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "thunder-latest-x86_64-unknown-linux-gnu",
-              "darwin": "thunder-latest-x86_64-apple-darwin",
-              "win32": "thunder-latest-x86_64-pc-windows-gnu.exe"
-          },
-          "network": {
-              "port": 6009
-          },
-          "chain_type": 2,
-          "chain_layer": 2,
-          "slot": "9"
-      },
-      {
-          "id": "bitnames",
-          "enabled": true,
-          "version": "",
-          "display_name": "Bitnames",
-          "description": "Bitnames sidechain",
-          "repo_url": "https://github.com/LayerTwo-Labs/bitnames",
-          "directories": {
-              "base": {
-                  "linux": ".local/share/plain_bitnames",
-                  "darwin": "Library/Application Support/plain_bitnames",
-                  "win32": "AppData/Roaming/plain_bitnames"
-              },
-              "wallet": "wallet.mdb"
-          },
-          "extract_dir": {
-              "linux": "Drivechain-Launcher-Downloads/bitnames",
-              "darwin": "Drivechain-Launcher-Downloads/bitnames",
-              "win32": "Drivechain-Launcher-Downloads/bitnames"
-          },
-          "download": {
-              "urls": {
-                  "linux": "https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
-                  "win32": "https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip"
-              },
-              "sizes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "bitnames-latest-x86_64-unknown-linux-gnu",
-              "darwin": "bitnames-latest-x86_64-apple-darwin",
-              "win32": "bitnames-latest-x86_64-pc-windows-gnu.exe"
-          },
-          "network": {
-              "port": 0
-          },
-          "chain_type": 2,
-          "chain_layer": 2,
-          "slot": "2"
-      }
-  ]
+    "schema_version": "1.0",
+    "chains": [
+        {
+            "id": "bitcoin",
+            "enabled": true,
+            "version": "",
+            "display_name": "Bitcoin Core 28.1",
+            "description": "Bitcoin Core running in signet mode (test network)",
+            "repo_url": "https://github.com/bitcoin/bitcoin",
+            "released": "yes",
+            "directories": {
+                "base": {
+                    "linux": ".drivechain",
+                    "darwin": "Library/Application Support/Drivechain",
+                    "win32": "AppData/Roaming/Drivechain"
+                },
+                "wallet": "wallet.dat"
+            },
+            "extract_dir": {
+                "linux": "Drivechain-Launcher-Downloads/bitcoin",
+                "darwin": "Drivechain-Launcher-Downloads/bitcoin",
+                "win32": "Drivechain-Launcher-Downloads/bitcoin"
+            },
+            "download": {
+                "urls": {
+                    "linux": "https://releases.drivechain.info/L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
+                    "darwin": "https://releases.drivechain.info/L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
+                    "win32": "https://releases.drivechain.info/L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
+                },
+                "sizes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                },
+                "hashes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                }
+            },
+            "binary": {
+                "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu/bitcoind",
+                "darwin": "L1-bitcoin-patched-latest-x86_64-apple-darwin/bitcoind",
+                "win32": "L1-bitcoin-patched-latest-x86_64-w64-msvc/bitcoind.exe"
+            },
+            "network": {
+                "port": 8332
+            },
+            "chain_type": 0,
+            "slot": ""
+        },
+        {
+            "id": "enforcer",
+            "enabled": true,
+            "version": "",
+            "display_name": "BIP 300/301 Enforcer",
+            "description": "Activates Bip300, without changing Bitcoin's code",
+            "repo_url": "https://github.com/LayerTwo-Labs/bip300301_enforcer",
+            "released": "yes",
+            "directories": {
+                "base": {
+                    "linux": ".local/share/bip300301_enforcer",
+                    "darwin": "Library/Application Support/bip300301_enforcer",
+                    "win32": "AppData/Roaming/bip300301_enforcer"
+                },
+                "wallet": "wallet.db"
+            },
+            "extract_dir": {
+                "linux": "Drivechain-Launcher-Downloads/enforcer",
+                "darwin": "Drivechain-Launcher-Downloads/enforcer",
+                "win32": "Drivechain-Launcher-Downloads/enforcer"
+            },
+            "download": {
+                "urls": {
+                    "linux": "https://releases.drivechain.info/bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
+                    "darwin": "https://releases.drivechain.info/bip300301-enforcer-latest-x86_64-apple-darwin.zip",
+                    "win32": "https://releases.drivechain.info/bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
+                },
+                "sizes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                },
+                "hashes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                }
+            },
+            "binary": {
+                "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu/bip300301-enforcer-latest-x86_64-unknown-linux-gnu",
+                "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin/bip300301-enforcer-latest-x86_64-apple-darwin",
+                "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu/bip300301-enforcer-latest-x86_64-pc-windows-gnu.exe"
+            },
+            "network": {
+                "port": 0
+            },
+            "chain_type": 0,
+            "slot": ""
+        },
+        {
+            "id": "bitwindow",
+            "enabled": true,
+            "version": "",
+            "display_name": "BitWindow",
+            "description": "GUI for managing Bitcoin and sidechains",
+            "repo_url": "https://github.com/LayerTwo-Labs/bitwindow",
+            "released": "yes",
+            "directories": {
+                "base": {
+                    "linux": ".local/share/bitwindow",
+                    "darwin": "Library/Application Support/bitwindow",
+                    "win32": "AppData/Roaming/bitwindow"
+                },
+                "wallet": ""
+            },
+            "extra_delete": ["Library/Application Support/com.layertwolabs.bitwindow", "Library/AppData/Roaming/com.layertwolabs.bitwindow", "Library/AppData/Roaming/com.example", ".local/share/com.layertwolabs.bitwindow"],
+            "extract_dir": {
+                "linux": "Drivechain-Launcher-Downloads/bitwindow",
+                "darwin": "Drivechain-Launcher-Downloads/bitwindow",
+                "win32": "Drivechain-Launcher-Downloads/bitwindow"
+            },
+            "download": {
+                "urls": {
+                    "linux": "https://releases.drivechain.info/BitWindow-latest-x86_64-unknown-linux-gnu.zip",
+                    "darwin": "https://releases.drivechain.info/BitWindow-latest-x86_64-apple-darwin.zip",
+                    "win32": "https://releases.drivechain.info/BitWindow-latest-x86_64-pc-windows-msvc.zip"
+                },
+                "sizes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                },
+                "hashes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                }
+            },
+            "binary": {
+                "linux": "bitwindow",
+                "darwin": "bitwindow",
+                "win32": "bitwindow.exe"
+            },
+            "network": {
+                "port": 0
+            },
+            "chain_type": 0,
+            "slot": ""
+        },
+        {
+            "id": "thunder",
+            "enabled": true,
+            "version": "",
+            "display_name": "Thunder",
+            "description": "High-performance sidechain with large blocks",
+            "repo_url": "https://github.com/LayerTwo-Labs/thunder-rust",
+            "released": "yes",
+            "directories": {
+                "base": {
+                    "linux": ".local/share/thunder",
+                    "darwin": "Library/Application Support/thunder",
+                    "win32": "AppData/Roaming/thunder"
+                },
+                "wallet": "data/thunder/wallet.mdb"
+            },
+            "extract_dir": {
+                "linux": "Drivechain-Launcher-Downloads/thunder",
+                "darwin": "Drivechain-Launcher-Downloads/thunder",
+                "win32": "Drivechain-Launcher-Downloads/thunder"
+            },
+            "download": {
+                "urls": {
+                    "linux": "https://releases.drivechain.info/L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
+                    "darwin": "https://releases.drivechain.info/L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
+                    "win32": "https://releases.drivechain.info/L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
+                },
+                "sizes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                },
+                "hashes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                }
+            },
+            "binary": {
+                "linux": "thunder-latest-x86_64-unknown-linux-gnu",
+                "darwin": "thunder-latest-x86_64-apple-darwin",
+                "win32": "thunder-latest-x86_64-pc-windows-gnu.exe"
+            },
+            "network": {
+                "port": 6009
+            },
+            "chain_type": 2,
+            "chain_layer": 2,
+            "slot": "9"
+        },
+        {
+            "id": "bitnames",
+            "enabled": true,
+            "version": "",
+            "display_name": "Bitnames",
+            "description": "Decentralized naming and identity sidechain",
+            "repo_url": "https://github.com/LayerTwo-Labs/bitnames",
+            "released": "yes",
+            "directories": {
+                "base": {
+                    "linux": ".local/share/plain_bitnames",
+                    "darwin": "Library/Application Support/plain_bitnames",
+                    "win32": "AppData/Roaming/plain_bitnames"
+                },
+                "wallet": "wallet.mdb"
+            },
+            "extract_dir": {
+                "linux": "Drivechain-Launcher-Downloads/bitnames",
+                "darwin": "Drivechain-Launcher-Downloads/bitnames",
+                "win32": "Drivechain-Launcher-Downloads/bitnames"
+            },
+            "download": {
+                "urls": {
+                    "linux": "https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
+                    "darwin": "https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
+                    "win32": "https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip"
+                },
+                "sizes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                },
+                "hashes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                }
+            },
+            "binary": {
+                "linux": "bitnames-latest-x86_64-unknown-linux-gnu",
+                "darwin": "bitnames-latest-x86_64-apple-darwin",
+                "win32": "bitnames-latest-x86_64-pc-windows-gnu.exe"
+            },
+            "network": {
+                "port": 0
+            },
+            "chain_type": 2,
+            "chain_layer": 2,
+            "slot": "2"
+        },
+        {
+            "id": "thunder-orchard",
+            "enabled": {
+                "linux": true,
+                "darwin": true,
+                "win32": false
+            },
+            "version": "",
+            "display_name": "ZSide",
+            "description": "Privacy sidechain based on zCash",
+            "repo_url": "https://github.com/iwakura-rein/thunder-orchard",
+            "released": "yes",
+            "directories": {
+                "base": {
+                    "linux": ".local/share/thunder-orchard",
+                    "darwin": "Library/Application Support/thunder-orchard",
+                    "win32": "AppData/Roaming/thunder-orchard"
+                },
+                "wallet": "wallet.mdb"
+            },
+            "extract_dir": {
+                "linux": "Drivechain-Launcher-Downloads/zside",
+                "darwin": "Drivechain-Launcher-Downloads/zside",
+                "win32": "Drivechain-Launcher-Downloads/zside"
+            },
+            "direct_binary": true,
+            "github": {
+                "owner": "iwakura-rein",
+                "repo": "thunder-orchard",
+                "use_github_releases": true,
+                "asset_patterns": {
+                    "linux": "thunder-orchard-.*-x86_64-unknown-linux-gnu$",
+                    "darwin": "thunder-orchard-.*-x86_64-apple-darwin$",
+                    "win32": ""
+                }
+            },
+            "binary": {
+                "linux": "thunder-orchard-*-x86_64-unknown-linux-gnu",
+                "darwin": "thunder-orchard-*-x86_64-apple-darwin",
+                "win32": ""
+            },
+            "network": {
+                "port": 6003
+            },
+            "chain_type": 2,
+            "chain_layer": 2,
+            "slot": "3"
+        },
+        {
+            "id": "ethside",
+            "enabled": true,
+            "version": "",
+            "display_name": "EthSide",
+            "description": "Ethereum-compatible Bitcoin sidechain",
+            "repo_url": "https://github.com/LayerTwo-Labs/ethereum-sidechain",
+            "released": "no",
+            "directories": {
+                "base": {
+                    "linux": ".local/share/ethside",
+                    "darwin": "Library/Application Support/ethside",
+                    "win32": "AppData/Roaming/ethside"
+                },
+                "wallet": "keystore"
+            },
+            "extract_dir": {
+                "linux": "Drivechain-Launcher-Downloads/ethside",
+                "darwin": "Drivechain-Launcher-Downloads/ethside",
+                "win32": "Drivechain-Launcher-Downloads/ethside"
+            },
+            "download": {
+                "urls": {
+                    "linux": "https://releases.drivechain.info/L2-S4-EthSide-latest-x86_64-unknown-linux-gnu.zip",
+                    "darwin": "https://releases.drivechain.info/L2-S4-EthSide-latest-x86_64-apple-darwin.zip",
+                    "win32": "https://releases.drivechain.info/L2-S4-EthSide-latest-x86_64-pc-windows-gnu.zip"
+                },
+                "sizes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                },
+                "hashes": {
+                    "linux": "",
+                    "darwin": "",
+                    "win32": ""
+                }
+            },
+            "binary": {
+                "linux": "ethside-latest-x86_64-unknown-linux-gnu",
+                "darwin": "ethside-latest-x86_64-apple-darwin",
+                "win32": "ethside-latest-x86_64-pc-windows-gnu.exe"
+            },
+            "network": {
+                "port": 6004
+            },
+            "chain_type": 2,
+            "chain_layer": 2,
+            "slot": "4"
+        }
+    ]
 }

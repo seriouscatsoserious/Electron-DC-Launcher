@@ -9,24 +9,30 @@
     "id": "enforcer",
     "display_name": "BIP 300/301 Enforcer",
     "description": "Enforcer for BIP 300/301 functionality",
-    "dependencies": ["bitcoin"]
+    "dependencies": []
   },
   {
     "id": "bitwindow",
     "display_name": "BitWindow",
     "description": "BitWindow interface",
-    "dependencies": ["bitcoin", "enforcer"]
+    "dependencies": []
   },
   {
     "id": "thunder",
     "display_name": "Thunder",
     "description": "A high performance largeblock sidechain",
-    "dependencies": ["bitcoin", "enforcer"]
+    "dependencies": ["bitwindow"]
   },
   {
     "id": "bitnames",
     "display_name": "Bitnames",
     "description": "Bitnames sidechain",
-    "dependencies": ["bitcoin", "enforcer"]
+    "dependencies": ["bitwindow"]
+  },
+  {
+    "id": "thunder-orchard",
+    "display_name": "ZSide",
+    "description": "Privacy sidechain based on zCash",
+    "dependencies": ["bitwindow"]
   }
 ]

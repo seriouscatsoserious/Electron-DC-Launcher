@@ -5,10 +5,13 @@
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 16px;
 }
 
 .dangerOverlay {
@@ -20,8 +23,8 @@
 .modalContent {
   background-color: var(--background-color);
   border-radius: 8px;
-  padding: 20px;
-  width: 90%;
+  padding: 24px;
+  width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
@@ -60,6 +63,9 @@
   display: grid;
   gap: 15px;
   margin-bottom: 20px;
+  padding: 16px;
+  background-color: rgba(128, 128, 128, 0.05);
+  border-radius: 8px;
 }
 
 .infoRow {

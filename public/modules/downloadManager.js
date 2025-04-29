@@ -1,19 +1,87 @@
 const { app } = require("electron");
+const { EventEmitter } = require('events');
 const fs = require("fs-extra");
 const path = require("path");
 const axios = require("axios");
 const AdmZip = require("adm-zip");
 const tar = require("tar");
 const { pipeline } = require('stream/promises');
-const DownloadTimestamps = require('./downloadTimestamps');
+const getDownloadTimestamps = require('./downloadTimestamps');
 
-class DownloadManager {
+class DownloadManager extends EventEmitter {
   constructor(mainWindow, config) {
+    super();
     this.mainWindow = mainWindow;
     this.config = config;
     this.activeDownloads = new Map();
     this.pausedDownloads = new Map();
-    this.timestamps = new DownloadTimestamps();
+    this.timestamps = getDownloadTimestamps();
+    this.extractionQueue = [];
+    this.isExtracting = false;
+  }
+
+  async processExtractionQueue() {
+    if (this.isExtracting || this.extractionQueue.length === 0) return;
+    
+    this.isExtracting = true;
+    const { chainId, zipPath, basePath, resolve, reject } = this.extractionQueue[0];
+
+    try {
+      if (process.platform === 'darwin' && chainId === 'bitwindow') {
+        await this.extractMacOSApp(chainId, zipPath, basePath);
+      } else {
+        const zip = new AdmZip(zipPath);
+        await new Promise((res, rej) => {
+          zip.extractAllToAsync(basePath, true, (error) => {
+            if (error) {
+              console.error(`Extraction error for ${chainId}: ${error.message}`);
+              rej(error);
+            } else {
+              res();
+            }
+          });
+        });
+      }
+      resolve();
+    } catch (error) {
+      console.error(`Error in extractZip for ${chainId}: ${error.message}`);
+      reject(error);
+    } finally {
+      this.extractionQueue.shift();
+      this.isExtracting = false;
+      this.processExtractionQueue();
+    }
+  }
+
+  async extractMacOSApp(chainId, zipPath, basePath) {
+    return new Promise((resolve, reject) => {
+      const { spawn } = require('child_process');
+      const ditto = spawn('ditto', ['-xk', zipPath, basePath]);
+      
+      ditto.stderr.on('data', (data) => {
+        console.error(`Ditto stderr: ${data}`);
+      });
+
+      ditto.on('close', (code) => {
+        if (code === 0) {
+          const appPath = path.join(basePath, 'bitwindow.app');
+          spawn('chmod', ['-R', '+x', appPath])
+            .on('close', (chmodCode) => {
+              if (chmodCode === 0) {
+                resolve();
+              } else {
+                reject(new Error(`Failed to set permissions: ${chmodCode}`));
+              }
+            });
+        } else {
+          reject(new Error(`Ditto extraction failed with code: ${code}`));
+        }
+      });
+
+      ditto.on('error', (error) => {
+        reject(new Error(`Ditto error: ${error.message}`));
+      });
+    });
   }
 
   startDownload(chainId, url, basePath) {
@@ -39,29 +107,48 @@ class DownloadManager {
   }
 
   async downloadAndExtract(chainId, url, basePath) {
-    const fileExt = this.getFileExtension(url);
+    const chain = this.config.chains.find(c => c.id === chainId);
+    const isDirectBinary = chain?.direct_binary === true;
+    const fileExt = isDirectBinary ? '' : this.getFileExtension(url);
+    const fileName = url.split('/').pop();
     const tempPath = path.join(basePath, `temp_${chainId}${fileExt}`);
+    const finalPath = path.join(basePath, fileName);
+
+    console.log(`[${chainId}] Attempting download:`);
+    console.log(`[${chainId}] Base path: ${basePath}`);
+    console.log(`[${chainId}] Temp path: ${tempPath}`);
+    console.log(`[${chainId}] Final path: ${finalPath}`);
 
     try {
       await this.downloadFile(chainId, url, tempPath);
       
-      // Force progress to 100% and update status to extracting
+      // Force progress to 100%
       const download = this.activeDownloads.get(chainId);
       if (download) {
-        // Ensure progress is 100% before extraction starts
         download.progress = 100;
-        download.status = "extracting";
-        // Force immediate update without throttling
+        if (!isDirectBinary) {
+          download.status = "extracting";
+        }
         this.sendDownloadsUpdate();
       }
       
-      if (fileExt === '.tar.gz') {
-        await this.extractTarGz(chainId, tempPath, basePath);
+      if (isDirectBinary) {
+        // For direct binary, just move to final location and make executable
+        await fs.promises.rename(tempPath, finalPath);
+        console.log(`[${chainId}] Downloaded binary to: ${finalPath}`);
+        if (process.platform !== 'win32') {
+          await fs.promises.chmod(finalPath, 0o755);
+          console.log(`[${chainId}] Made binary executable`);
+        }
       } else {
-        await this.extractZip(chainId, tempPath, basePath);
+        // For archives, extract as usual
+        if (fileExt === '.tar.gz') {
+          await this.extractTarGz(chainId, tempPath, basePath);
+        } else {
+          await this.extractZip(chainId, tempPath, basePath);
+        }
+        await fs.promises.unlink(tempPath);
       }
-
-      await fs.promises.unlink(tempPath);
 
       // Save download timestamp
       this.timestamps.setTimestamp(chainId, new Date().toISOString());
@@ -69,16 +156,22 @@ class DownloadManager {
       this.activeDownloads.delete(chainId);
       this.sendDownloadsUpdate();
       this.mainWindow.webContents.send("download-complete", { chainId });
+      this.emit('download-complete', chainId);
     } catch (error) {
-      console.error(`Error processing ${chainId}:`, error);
+      // Don't report cancellation errors during reset
+      if (!axios.isCancel(error) || error.message !== 'Reset chain requested') {
+        console.error(`Error processing ${chainId}:`, error);
+        this.mainWindow.webContents.send("download-error", {
+          chainId,
+          error: error.message,
+          stack: error.stack,
+        });
+      }
+
+      // Clean up regardless of error type
       this.activeDownloads.delete(chainId);
       this.pausedDownloads.delete(chainId);
       this.sendDownloadsUpdate();
-      this.mainWindow.webContents.send("download-error", {
-        chainId,
-        error: error.message,
-        stack: error.stack,
-      });
 
       try {
         await fs.promises.unlink(tempPath);
@@ -117,8 +210,15 @@ class DownloadManager {
       try {
         const cancelSource = axios.CancelToken.source();
         download.cancelSource = cancelSource;
+        download.writer = writer; // Store writer reference for cleanup
 
+        // Configure axios with timeout and keepalive
         const { data, headers } = await axios({
+          timeout: 30000, // 30 second timeout
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+          httpAgent: new (require('http').Agent)({ keepAlive: true }),
+          httpsAgent: new (require('https').Agent)({ keepAlive: true }),
           method: "GET",
           url: url,
           responseType: "stream",
@@ -154,22 +254,19 @@ class DownloadManager {
           }
         });
 
-        data.on("error", (error) => {
-          reject(new Error(`Download error: ${error.message}`));
+        data.on("error", async (error) => {
+          writer.end();
+          reject(error);
         });
 
-        writer.on("error", reject);
+        writer.on("error", async (error) => {
+          reject(error);
+        });
 
         writer.on("close", () => {
-          if (downloadedLength === totalLength) {
-            // Force final progress update to 100% before resolving
-            this.updateDownloadProgress(chainId, 100, downloadedLength);
-            resolve();
-          } else if (!this.pausedDownloads.has(chainId)) {
-            reject(new Error(`Incomplete download: expected ${totalLength} bytes, got ${downloadedLength} bytes`));
-          } else {
-            resolve();
-          }
+          // Force final progress update to 100% before resolving
+          this.updateDownloadProgress(chainId, 100, downloadedLength);
+          resolve();
         });
       } catch (error) {
         if (axios.isCancel(error)) {
@@ -184,52 +281,8 @@ class DownloadManager {
 
   async extractZip(chainId, zipPath, basePath) {
     return new Promise((resolve, reject) => {
-      try {
-        // Special handling for macOS app bundles
-        if (process.platform === 'darwin' && chainId === 'bitwindow') {
-          const { spawn } = require('child_process');
-          const ditto = spawn('ditto', ['-xk', zipPath, basePath]);
-          
-          ditto.stderr.on('data', (data) => {
-            console.error(`Ditto stderr: ${data}`);
-          });
-
-          ditto.on('close', (code) => {
-            if (code === 0) {
-              // Set proper permissions for the .app bundle
-              const appPath = path.join(basePath, 'bitwindow.app');
-              spawn('chmod', ['-R', '+x', appPath])
-                .on('close', (chmodCode) => {
-                  if (chmodCode === 0) {
-                    resolve();
-                  } else {
-                    reject(new Error(`Failed to set permissions: ${chmodCode}`));
-                  }
-                });
-            } else {
-              reject(new Error(`Ditto extraction failed with code: ${code}`));
-            }
-          });
-
-          ditto.on('error', (error) => {
-            reject(new Error(`Ditto error: ${error.message}`));
-          });
-        } else {
-          // Use AdmZip for non-macOS or non-BitWindow extractions
-          const zip = new AdmZip(zipPath);
-          zip.extractAllToAsync(basePath, true, (error) => {
-            if (error) {
-              console.error(`Extraction error for ${chainId}: ${error.message}`);
-              reject(error);
-            } else {
-              resolve();
-            }
-          });
-        }
-      } catch (error) {
-        console.error(`Error in extractZip for ${chainId}: ${error.message}`);
-        reject(error);
-      }
+      this.extractionQueue.push({ chainId, zipPath, basePath, resolve, reject });
+      this.processExtractionQueue();
     });
   }
 
@@ -282,16 +335,46 @@ class DownloadManager {
 
   sendDownloadsUpdate() {
     if (this.mainWindow) {
-      const downloadsArray = [...this.activeDownloads.entries(), ...this.pausedDownloads.entries()]
-        .map(([chainId, download]) => ({
-          chainId,
-          displayName: this.config.chains.find(c => c.id === chainId)?.display_name || chainId,
-          progress: download.progress,
-          status: download.status,
-          downloadedLength: download.downloadedLength,
-          totalLength: download.totalLength,
-        }));
-      this.mainWindow.webContents.send("downloads-update", downloadsArray);
+      try {
+        // Ensure we only send serializable data
+        const downloadsArray = [...this.activeDownloads.entries(), ...this.pausedDownloads.entries()]
+          .map(([chainId, download]) => {
+            // Extract only the serializable properties we need
+            const serializedDownload = {
+              chainId,
+              displayName: this.config.chains.find(c => c.id === chainId)?.display_name || chainId,
+              progress: download.progress || 0,
+              status: download.status || 'unknown',
+              downloadedLength: typeof download.downloadedLength === 'number' ? download.downloadedLength : 0,
+              totalLength: typeof download.totalLength === 'number' ? download.totalLength : 0,
+              retryCount: download.retryCount || 0
+            };
+            
+            // Ensure all numeric values are finite
+            if (!Number.isFinite(serializedDownload.progress)) {
+              serializedDownload.progress = 0;
+            }
+            if (!Number.isFinite(serializedDownload.downloadedLength)) {
+              serializedDownload.downloadedLength = 0;
+            }
+            if (!Number.isFinite(serializedDownload.totalLength)) {
+              serializedDownload.totalLength = 0;
+            }
+            
+            return serializedDownload;
+          });
+        
+        // Wrap IPC send in try-catch to handle potential window destruction
+        try {
+          if (!this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send("downloads-update", downloadsArray);
+          }
+        } catch (error) {
+          console.error("Failed to send downloads update:", error);
+        }
+      } catch (error) {
+        console.error("Error preparing downloads update:", error);
+      }
     }
   }
 
@@ -299,8 +382,75 @@ class DownloadManager {
     return [...this.activeDownloads.entries(), ...this.pausedDownloads.entries()]
       .map(([chainId, download]) => ({
         chainId,
-        ...download,
+        progress: download.progress || 0,
+        status: download.status || 'unknown',
+        downloadedLength: typeof download.downloadedLength === 'number' ? download.downloadedLength : 0,
+        totalLength: typeof download.totalLength === 'number' ? download.totalLength : 0,
+        retryCount: download.retryCount || 0
       }));
+  }
+
+  async cleanupChainDownloads(chainId, basePath) {
+    // Cancel any active downloads
+    const download = this.activeDownloads.get(chainId) || this.pausedDownloads.get(chainId);
+    if (download && download.cancelSource) {
+      // Force cancel the download and prevent retries
+      download.cancelSource.cancel('Reset chain requested');
+      download.writer?.end?.();
+    }
+
+    // Immediately remove from tracking maps to prevent any retry attempts
+    this.activeDownloads.delete(chainId);
+    this.pausedDownloads.delete(chainId);
+
+    // Force a small delay to ensure cancellation is processed
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Clean up any temp files that might exist
+    try {
+      const tempFiles = [
+        path.join(basePath, `temp_${chainId}.zip`),
+        path.join(basePath, `temp_${chainId}.tar.gz`)
+      ];
+
+      for (const tempFile of tempFiles) {
+        try {
+          await fs.remove(tempFile);
+        } catch (err) {
+          // Ignore errors for individual temp files
+          console.log(`Could not remove temp file ${tempFile}:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.error(`Error cleaning up downloads for ${chainId}:`, err);
+    }
+
+    // Force UI update
+    this.sendDownloadsUpdate();
+  }
+
+  async cleanupAllDownloads() {
+    // Get all chains with active or paused downloads
+    const activeChains = [...this.activeDownloads.keys(), ...this.pausedDownloads.keys()];
+    
+    for (const chainId of activeChains) {
+      const chain = this.config.chains.find(c => c.id === chainId);
+      if (!chain) continue;
+
+      const platform = process.platform;
+      const extractDir = chain.extract_dir?.[platform];
+      if (!extractDir) continue;
+
+      const downloadsDir = app.getPath("downloads");
+      const extractPath = path.join(downloadsDir, extractDir);
+
+      await this.cleanupChainDownloads(chainId, extractPath);
+    }
+
+    // Double check all maps are cleared
+    this.activeDownloads.clear();
+    this.pausedDownloads.clear();
+    this.sendDownloadsUpdate();
   }
 }
 

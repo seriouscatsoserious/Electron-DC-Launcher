@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, powerSaveBlocker } = require("electron");
 
 // Disable sandbox for Linux
 if (process.platform === 'linux') {
@@ -9,6 +9,7 @@ if (process.platform === 'linux') {
 const path = require("path");
 const fs = require("fs-extra");
 const isDev = require("electron-is-dev");
+const axios = require("axios");
 const ConfigManager = require("./modules/configManager");
 const ChainManager = require("./modules/chainManager");
 const WalletManager = require("./modules/walletManager");
@@ -18,10 +19,10 @@ const ApiManager = require("./modules/apiManager");
 const DirectoryManager = require("./modules/directoryManager");
 const UpdateManager = require("./modules/updateManager");
 
-
 const configPath = path.join(__dirname, "chain_config.json");
 let config;
 let mainWindow = null;
+let loadingWindow = null;
 let chainManager;
 let downloadManager;
 let directoryManager;
@@ -40,27 +41,107 @@ async function loadConfig() {
   }
 }
 
+// Track active downloads to manage power save blocking
+let activeDownloadCount = 0;
+let powerSaveBlockerId = null;
+
+function updatePowerSaveBlocker() {
+  if (activeDownloadCount > 0 && !powerSaveBlockerId) {
+    // Start power save blocker when downloads are active
+    powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+  } else if (activeDownloadCount === 0 && powerSaveBlockerId !== null) {
+    // Stop power save blocker when no downloads are active
+    powerSaveBlocker.stop(powerSaveBlockerId);
+    powerSaveBlockerId = null;
+  }
+}
+
+function createLoadingWindow() {
+  loadingWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    frame: false,
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false
+  });
+
+  loadingWindow.loadFile('public/loading.html');
+  loadingWindow.once('ready-to-show', () => {
+    loadingWindow.show();
+    loadingWindow.focus();
+  });
+  loadingWindow.center();
+}
+
 function createWindow() {
   if (mainWindow === null) {
-    mainWindow = new BrowserWindow({
-      width: 1024,
-      height: 768,
+    // Create main window completely hidden
+    const options = {
+      width: 900,
+      height: 400,
+      show: false,
+      frame: true,
+      resizable: false,
+      autoHideMenuBar: true,
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
         preload: path.join(__dirname, "preload.js"),
         sandbox: false
-      },
-    });
+      }
+    };
+
+    if (process.platform === 'linux') {
+      options.icon = path.join(__dirname, 'icon/icon.png');
+    } else {
+      options.icon = path.join(__dirname, '512.png');
+    }
+
+    mainWindow = new BrowserWindow(options);
+
+    // Load the URL
     mainWindow.loadURL(
       isDev
         ? "http://localhost:3000"
         : `file://${path.join(__dirname, "../build/index.html")}`
     );
 
+    // Wait for window content to be ready
+    mainWindow.once('ready-to-show', () => {
+      // Add handler for app ready notification
+      ipcMain.handle("notify-ready", () => {
+        if (loadingWindow) {
+          loadingWindow.destroy();
+          loadingWindow = null;
+        }
+        mainWindow.show();
+        mainWindow.focus();
+      });
+    });
+
     mainWindow.on('close', (event) => {
       if (!isShuttingDown) {
         event.preventDefault();
+        // Check for active downloads before initiating shutdown
+        const activeDownloads = downloadManager?.getDownloads() || [];
+        if (activeDownloads.length > 0) {
+          // Serialize download data to ensure it can be sent through IPC
+          const serializedDownloads = activeDownloads.map(download => ({
+            chainId: download.chainId,
+            progress: download.progress,
+            status: download.status,
+            downloadedLength: download.downloadedLength,
+            totalLength: download.totalLength
+          }));
+          mainWindow.webContents.send("downloads-in-progress", serializedDownloads);
+          return;
+        }
         performGracefulShutdown();
       }
     });
@@ -72,6 +153,21 @@ function createWindow() {
 }
 
 function setupIPCHandlers() {
+  // Add handler for update messages from frontend
+  ipcMain.on('toMain', (event, data) => {
+    switch (data.type) {
+      case 'update-status':
+        console.log(data.message);
+        break;
+      case 'update-progress':
+        console.log(data.message);
+        break;
+      case 'update-error':
+        console.error(data.message);
+        break;
+    }
+  });
+
   // API handlers
   ipcMain.handle("list-claims", async () => {
     try {
@@ -216,6 +312,22 @@ function setupIPCHandlers() {
     }
   });
 
+  ipcMain.handle("get-bitcoin-info", async () => {
+    try {
+      const info = await chainManager.getBitcoinInfo();
+      return {
+        blocks: info.blocks,
+        initialblockdownload: info.inIBD
+      };
+    } catch (error) {
+      console.error("Failed to get Bitcoin info:", error);
+      return {
+        blocks: 0,
+        initialblockdownload: false
+      };
+    }
+  });
+
   ipcMain.handle("reset-chain", async (event, chainId) => {
     try {
       return await chainManager.resetChain(chainId);
@@ -231,18 +343,47 @@ function setupIPCHandlers() {
     if (!chain) throw new Error("Chain not found");
 
     const platform = process.platform;
-    const url = chain.download.urls[platform];
-    if (!url) throw new Error(`No download URL found for platform ${platform}`);
-
     const extractDir = chain.extract_dir?.[platform];
     if (!extractDir) throw new Error(`No extract directory configured for platform ${platform}`);
 
     const downloadsDir = app.getPath("downloads");
     const extractPath = path.join(downloadsDir, extractDir);
 
+    let url;
+    if (chain.github?.use_github_releases) {
+      // For GitHub-based releases, fetch the latest release to get download URL
+      const response = await axios.get(
+        `https://api.github.com/repos/${chain.github.owner}/${chain.github.repo}/releases/latest`
+      );
+      
+      const pattern = chain.github.asset_patterns[platform];
+      if (!pattern) throw new Error(`No asset pattern found for platform ${platform}`);
+      
+      const regex = new RegExp(pattern);
+      const asset = response.data.assets.find(a => regex.test(a.name));
+      if (!asset) throw new Error(`No matching asset found for platform ${platform}`);
+      
+      url = asset.browser_download_url;
+    } else {
+      // Traditional releases.drivechain.info approach
+      url = chain.download.urls[platform];
+      if (!url) throw new Error(`No download URL found for platform ${platform}`);
+    }
+
     await fs.ensureDir(extractPath);
-    downloadManager.startDownload(chainId, url, extractPath);
-    return { success: true };
+    activeDownloadCount++;
+    updatePowerSaveBlocker();
+    
+    try {
+      await downloadManager.startDownload(chainId, url, extractPath);
+      return { success: true };
+    } catch (error) {
+      console.error(`Download failed for ${chainId}:`, error);
+      throw error;
+    } finally {
+      activeDownloadCount--;
+      updatePowerSaveBlocker();
+    }
   });
 
   ipcMain.handle("pause-download", async (event, chainId) => {
@@ -331,6 +472,9 @@ function setupIPCHandlers() {
         case 'bitnames':
           filePath = path.join(walletDir, 'sidechain_2_starter.json');
           break;
+        case 'zside':
+          filePath = path.join(walletDir, 'sidechain_3_starter.json');
+          break;
         default:
           throw new Error('Invalid wallet type');
       }
@@ -393,8 +537,12 @@ function setupIPCHandlers() {
     try {
       // First stop any running chains
       for (const chainId of chainIds) {
+        const chain = config.chains.find(c => c.id === chainId);
+        if (!chain) continue;
+
         const status = await chainManager.getChainStatus(chainId);
         if (status === 'running' || status === 'ready') {
+          console.log(`[Update Status] Stopping ${chain.display_name}...`);
           await chainManager.stopChain(chainId);
         }
       }
@@ -413,11 +561,32 @@ function setupIPCHandlers() {
         const extractPath = path.join(downloadsDir, extractDir);
 
         // Delete existing binary directory
+        console.log(`[Update Status] Removing old binaries for ${chain.display_name}...`);
         await fs.remove(extractPath);
 
-        // Download and extract new binary
-        const url = chain.download.urls[platform];
-        if (!url) continue;
+        // Get download URL based on chain type
+        let url;
+        if (chain.github?.use_github_releases) {
+          // For GitHub-based releases, fetch the latest release to get download URL
+          const response = await axios.get(
+            `https://api.github.com/repos/${chain.github.owner}/${chain.github.repo}/releases/latest`
+          );
+          
+          const pattern = chain.github.asset_patterns[platform];
+          if (!pattern) continue;
+          
+          const regex = new RegExp(pattern);
+          const asset = response.data.assets.find(a => regex.test(a.name));
+          if (!asset) continue;
+          
+          url = asset.browser_download_url;
+          // Set timestamp immediately after successful download
+          await downloadManager.timestamps.setTimestamp(chainId, new Date().toISOString());
+        } else {
+          // Traditional releases.drivechain.info approach
+          url = chain.download.urls[platform];
+          if (!url) continue;
+        }
 
         await fs.ensureDir(extractPath);
         downloadManager.startDownload(chainId, url, extractPath);
@@ -497,6 +666,25 @@ function setupIPCHandlers() {
   ipcMain.handle('force-kill', () => {
     forceKillAllProcesses();
   });
+
+  // Add handler for force quit with active downloads
+  ipcMain.handle('force-quit-with-downloads', async () => {
+    try {
+      // Cancel all downloads first
+      if (downloadManager) {
+        const activeDownloads = downloadManager.getDownloads();
+        for (const download of activeDownloads) {
+          await downloadManager.pauseDownload(download.chainId);
+        }
+      }
+      // Then force quit
+      isShuttingDown = true;
+      app.exit(0);
+    } catch (error) {
+      console.error('Error during force quit:', error);
+      app.exit(1);
+    }
+  });
 }
 
 async function initialize() {
@@ -519,9 +707,9 @@ async function initialize() {
     createWindow();
     
     // Then initialize managers that need mainWindow
-    chainManager = new ChainManager(mainWindow, config);
-    updateManager = new UpdateManager(config, chainManager);
     downloadManager = new DownloadManager(mainWindow, config);
+    chainManager = new ChainManager(mainWindow, config, downloadManager);
+    updateManager = new UpdateManager(config, chainManager);
     
     // Finally setup IPC handlers after everything is initialized
     setupIPCHandlers();
@@ -534,11 +722,22 @@ async function initialize() {
 // Disable sandbox
 app.commandLine.appendSwitch('no-sandbox');
 
-app.whenReady().then(initialize);
+async function startApp() {
+  // Show loading window first
+  createLoadingWindow();
+  
+  // Wait a bit to ensure loading window is visible
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Then start initialization
+  await initialize();
+}
+
+app.whenReady().then(startApp);
 
 let isShuttingDown = false;
 let forceKillTimeout;
-const SHUTDOWN_TIMEOUT = 30000;
+const SHUTDOWN_TIMEOUT = 10000; // Reduced to 10 seconds
 
 async function performGracefulShutdown() {
   if (isShuttingDown) return;
@@ -548,23 +747,47 @@ async function performGracefulShutdown() {
     mainWindow.webContents.send("shutdown-started");
   }
 
+  // Start force kill timeout immediately
   forceKillTimeout = setTimeout(() => {
     console.log("Shutdown timeout reached, forcing quit...");
     forceKillAllProcesses();
   }, SHUTDOWN_TIMEOUT);
 
   try {
+    // Clean up power save blocker if active
+    if (powerSaveBlockerId !== null) {
+      powerSaveBlocker.stop(powerSaveBlockerId);
+      powerSaveBlockerId = null;
+    }
+
+    // First handle any active downloads
+    if (downloadManager) {
+      const activeDownloads = downloadManager.getDownloads();
+      for (const download of activeDownloads) {
+        try {
+          console.log(`Canceling download for ${download.chainId}`);
+          await downloadManager.pauseDownload(download.chainId);
+        } catch (error) {
+          console.error(`Error canceling download for ${download.chainId}:`, error);
+        }
+      }
+    }
+
+    // Then stop running chains with a timeout
     if (chainManager) {
       const runningChains = Object.keys(chainManager.runningProcesses);
-      await Promise.all(runningChains.map(chainId => 
-        chainManager.stopChain(chainId).catch(err => 
-          console.error(`Error stopping ${chainId}:`, err)
-        )
-      ));
+      await Promise.race([
+        Promise.all(runningChains.map(chainId => 
+          chainManager.stopChain(chainId).catch(err => 
+            console.error(`Error stopping ${chainId}:`, err)
+          )
+        )),
+        new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout for chain stopping
+      ]);
     }
 
     clearTimeout(forceKillTimeout);
-    app.quit();
+    process.nextTick(() => app.exit(0)); // Force exit on next tick
   } catch (error) {
     console.error("Error during graceful shutdown:", error);
     forceKillAllProcesses();
@@ -572,10 +795,35 @@ async function performGracefulShutdown() {
 }
 
 function forceKillAllProcesses() {
+  // Clean up power save blocker if active
+  if (powerSaveBlockerId !== null) {
+    try {
+      powerSaveBlocker.stop(powerSaveBlockerId);
+      powerSaveBlockerId = null;
+    } catch (error) {
+      console.error("Error stopping power save blocker:", error);
+    }
+  }
+
+  // First cancel all downloads
+  if (downloadManager) {
+    const activeDownloads = downloadManager.getDownloads();
+    for (const download of activeDownloads) {
+      try {
+        console.log(`Force canceling download for ${download.chainId}`);
+        downloadManager.pauseDownload(download.chainId);
+      } catch (error) {
+        console.error(`Error force canceling download for ${download.chainId}:`, error);
+      }
+    }
+  }
+
+  // Then kill chain processes
   if (chainManager) {
     Object.entries(chainManager.runningProcesses).forEach(([chainId, process]) => {
       try {
         if (process.kill) {
+          console.log(`Force killing process for ${chainId}`);
           process.kill('SIGKILL');
         }
       } catch (error) {
@@ -587,7 +835,20 @@ function forceKillAllProcesses() {
   if (forceKillTimeout) {
     clearTimeout(forceKillTimeout);
   }
-  app.quit();
+
+  // Force exit the app
+  process.nextTick(() => {
+    try {
+      // On Linux/Windows, ensure all child processes are terminated
+      if (process.platform !== 'darwin') {
+        process.kill(-process.pid, 'SIGKILL');
+      }
+      app.exit(0);
+    } catch (error) {
+      console.error("Error during force exit:", error);
+      process.exit(1);
+    }
+  });
 }
 
 app.on("window-all-closed", () => {

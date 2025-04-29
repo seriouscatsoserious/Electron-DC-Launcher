@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import styles from './ChainSettingsModal.module.css';
+import styles from './WalletMessageModal.module.css';
 
 const WalletMessageModal = ({ error, path, chainName, onClose }) => {
   return (

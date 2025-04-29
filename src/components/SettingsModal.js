@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideSettingsModal } from '../store/settingsModalSlice';
 import { toggleShowQuotes } from '../store/settingsSlice';
@@ -6,7 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import styles from './SettingsModal.module.css';
 import { X } from 'lucide-react';
 import ResetAllModal from './ResetAllModal';
-import UpdateConfirmModal from './UpdateConfirmModal';
+import UpdateStatusModal from './UpdateStatusModal';
 import WalletWarningModal from './WalletWarningModal';
 
 const SettingsModal = ({ onResetComplete }) => {
@@ -14,9 +14,88 @@ const SettingsModal = ({ onResetComplete }) => {
   const [showWalletWarning, setShowWalletWarning] = useState(false);
   const [updateStatus, setUpdateStatus] = useState(null);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [showUpdateStatus, setShowUpdateStatus] = useState(false);
   const [availableUpdates, setAvailableUpdates] = useState([]);
-  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState({});
   const dispatch = useDispatch();
+
+  // Set up download progress listeners
+  useEffect(() => {
+    let config;
+    // Get config for chain names
+    window.electronAPI.invoke('get-config').then(result => {
+      config = result;
+    });
+
+    const removeStartedListener = window.electronAPI.receive("download-started", ({ chainId }) => {
+      const chain = config?.chains?.find(c => c.id === chainId);
+      const chainName = chain ? chain.display_name : chainId;
+      const message = `Starting download for ${chainName}...`;
+      window.electronAPI.sendMessage('toMain', { type: 'update-status', message });
+      setUpdateStatus(message);
+    });
+
+    const removeUpdateListener = window.electronAPI.receive("downloads-update", (downloads) => {
+      if (isUpdating) {
+        // Process all downloads
+        const newProgress = {};
+        downloads.forEach(download => {
+          const chain = config?.chains?.find(c => c.id === download.chainId);
+          const chainName = chain ? chain.display_name : download.chainId;
+          
+          if (download.status === "downloading") {
+            setUpdateStatus('Downloading updates...');
+            newProgress[chainName] = download.progress;
+          } else if (download.status === "extracting") {
+            const message = `Extracting update files for ${chainName}...`;
+            window.electronAPI.sendMessage('toMain', { type: 'update-status', message });
+            setUpdateStatus(message);
+            newProgress[chainName] = 100;
+          }
+        });
+        
+        // Update all progress bars at once
+        setDownloadProgress(prev => ({
+          ...prev,
+          ...newProgress
+        }));
+      }
+    });
+
+    const removeCompleteListener = window.electronAPI.receive("download-complete", ({ chainId }) => {
+      const chain = config?.chains?.find(c => c.id === chainId);
+      const chainName = chain ? chain.display_name : chainId;
+      const message = `Download completed for ${chainName}.`;
+      window.electronAPI.sendMessage('toMain', { type: 'update-status', message });
+      setUpdateStatus(message);
+    });
+
+    const removeErrorListener = window.electronAPI.receive("download-error", ({ chainId, error }) => {
+      const chain = config?.chains?.find(c => c.id === chainId);
+      const chainName = chain ? chain.display_name : chainId;
+      const message = `Error updating ${chainName}: ${error}`;
+      window.electronAPI.sendMessage('toMain', { type: 'update-error', message });
+      setUpdateStatus(message);
+      setIsUpdating(false);
+    });
+
+    // Helper function to format bytes
+    const formatBytes = (bytes) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    };
+
+    return () => {
+      removeStartedListener();
+      removeUpdateListener();
+      removeCompleteListener();
+      removeErrorListener();
+    };
+  }, [isUpdating]);
   const { isVisible } = useSelector((state) => state.settingsModal);
   const { showQuotes } = useSelector((state) => state.settings);
   const { isDarkMode, toggleTheme } = useTheme();
@@ -26,7 +105,9 @@ const SettingsModal = ({ onResetComplete }) => {
     setUpdateStatus(null);
     setIsCheckingUpdates(false);
     setAvailableUpdates([]);
-    setShowUpdateConfirm(false);
+    setShowUpdateStatus(false);
+    setDownloadProgress({});  // Reset download progress
+    setIsUpdating(false);     // Reset updating state
     dispatch(hideSettingsModal());
   };
 
@@ -126,7 +207,12 @@ const SettingsModal = ({ onResetComplete }) => {
               onClick={async () => {
                 try {
                   setIsCheckingUpdates(true);
-                  setUpdateStatus('Checking for updates...');
+                  setDownloadProgress({});  // Reset progress when checking starts
+                  setAvailableUpdates([]); // Clear available updates before checking
+                  const checkingMessage = 'Checking for updates...';
+                  window.electronAPI.sendMessage('toMain', { type: 'update-status', message: checkingMessage });
+                  setUpdateStatus(checkingMessage);
+                  setShowUpdateStatus(true);
                   const result = await window.electronAPI.invoke('check-for-updates');
                   
                   if (!result.success) {
@@ -138,16 +224,20 @@ const SettingsModal = ({ onResetComplete }) => {
                     .map(([id, update]) => update.displayName);
 
                   if (updates.length === 0) {
-                    setUpdateStatus('All chains are up to date');
+                    const upToDateMessage = 'All chains are up to date';
+                    window.electronAPI.sendMessage('toMain', { type: 'update-status', message: upToDateMessage });
+                    setUpdateStatus(upToDateMessage);
                     setAvailableUpdates([]);
                   } else {
-                    setUpdateStatus(`Updates available for: ${updates.join(', ')}`);
+                    const availableMessage = `Updates available for: ${updates.join(', ')}`;
+                    window.electronAPI.sendMessage('toMain', { type: 'update-status', message: availableMessage });
+                    setUpdateStatus(availableMessage);
                     setAvailableUpdates(updates);
-                    setShowUpdateConfirm(true);
                   }
                 } catch (error) {
-                  console.error('Error checking for updates:', error);
-                  setUpdateStatus(`Error checking for updates: ${error.message}`);
+                  const errorMessage = `Error checking for updates: ${error.message}`;
+                  window.electronAPI.sendMessage('toMain', { type: 'update-error', message: errorMessage });
+                  setUpdateStatus(errorMessage);
                 } finally {
                   setIsCheckingUpdates(false);
                 }
@@ -157,11 +247,6 @@ const SettingsModal = ({ onResetComplete }) => {
               {isCheckingUpdates ? 'Checking...' : 'Check Now'}
             </button>
           </div>
-          {updateStatus && (
-            <div className={styles.updateStatus}>
-              {updateStatus}
-            </div>
-          )}
         </div>
 
         <div className={styles.buttonContainer}>
@@ -174,35 +259,6 @@ const SettingsModal = ({ onResetComplete }) => {
         <ResetAllModal
           onConfirm={handleConfirmReset}
           onClose={() => setShowResetModal(false)}
-        />
-      )}
-      {showUpdateConfirm && (
-        <UpdateConfirmModal
-          updates={availableUpdates}
-          onConfirm={async () => {
-            try {
-              setUpdateStatus('Applying updates...');
-              // Get config to map display names to chain IDs
-              const config = await window.electronAPI.invoke('get-config');
-              const chainIds = availableUpdates.map(name => {
-                const chain = config.chains.find(c => c.display_name === name);
-                return chain ? chain.id : null;
-              }).filter(Boolean);
-
-              const result = await window.electronAPI.invoke('apply-updates', chainIds);
-
-              if (!result.success) {
-                throw new Error(result.error);
-              }
-
-              setUpdateStatus('Updates are being applied. Please wait for the process to complete.');
-              setShowUpdateConfirm(false);
-            } catch (error) {
-              console.error('Failed to apply updates:', error);
-              setUpdateStatus(`Error applying updates: ${error.message}`);
-            }
-          }}
-          onClose={() => setShowUpdateConfirm(false)}
         />
       )}
       {showWalletWarning && (
@@ -220,6 +276,46 @@ const SettingsModal = ({ onResetComplete }) => {
             }
           }}
           onClose={() => setShowWalletWarning(false)}
+        />
+      )}
+      {updateStatus && (
+        <UpdateStatusModal
+          status={updateStatus}
+          isVisible={showUpdateStatus}
+          updates={availableUpdates}
+          onClose={() => {
+            setShowUpdateStatus(false);
+            setDownloadProgress({});  // Reset progress when modal is closed
+            setIsUpdating(false);     // Reset updating state
+            setAvailableUpdates([]); // Clear available updates
+          }}
+          isUpdating={isUpdating}
+          downloadProgress={downloadProgress}
+          onConfirm={async () => {
+            try {
+              setIsUpdating(true);
+              window.electronAPI.sendMessage('toMain', { type: 'update-status', message: 'Preparing to apply updates...' });
+              setUpdateStatus('Preparing updates...');
+              const config = await window.electronAPI.invoke('get-config');
+              const chainIds = availableUpdates.map(name => {
+                const chain = config.chains.find(c => c.display_name === name);
+                return chain ? chain.id : null;
+              }).filter(Boolean);
+
+              window.electronAPI.sendMessage('toMain', { type: 'update-status', message: 'Stopping running chains...' });
+              setUpdateStatus('Stopping running chains before update...');
+              const result = await window.electronAPI.invoke('apply-updates', chainIds);
+
+              if (!result.success) {
+                throw new Error(result.error);
+              }
+
+              // The rest of the status updates will come from the download event listeners
+            } catch (error) {
+              window.electronAPI.sendMessage('toMain', { type: 'update-error', message: `Failed to apply updates: ${error.message}` });
+              setUpdateStatus(`Error applying updates: ${error.message}`);
+            }
+          }}
         />
       )}
     </div>

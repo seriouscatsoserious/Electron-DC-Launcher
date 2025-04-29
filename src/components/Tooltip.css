@@ -8,8 +8,8 @@
   z-index: 1000;
   pointer-events: none;
   max-width: 200px;
-  transform: translate(-50%, -100%);
-  margin-top: -8px;
+  transform: translateY(-50%);
+  margin-left: 8px;
   white-space: pre-wrap;
   text-align: center;
 }
@@ -17,10 +17,10 @@
 .tooltip::after {
   content: '';
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+  border-color: transparent rgba(0, 0, 0, 0.8) transparent transparent;
 }

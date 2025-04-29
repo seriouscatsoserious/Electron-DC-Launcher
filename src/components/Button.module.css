@@ -1,0 +1,200 @@
+.btn {
+  min-width: 65px;
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  font-weight: 500;
+  font-size: calc(var(--base-font-size) * 0.9);
+  font-family: inherit;
+  text-align: center;
+  color: var(--text-color);
+  background: var(--card-bg);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+:global(.dark) .btn {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.download,
+.run,
+.running,
+.stop,
+.stopping {
+  composes: btn;
+  width: 90px;
+}
+
+.downloading,
+.extracting {
+  composes: btn;
+  width: auto;
+  min-width: 90px;
+}
+
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.download:hover,
+.run:hover,
+.stop:hover { 
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+:global(.dark) .download:hover,
+:global(.dark) .run:hover,
+:global(.dark) .stop:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.downloading,
+.extracting { 
+  position: relative;
+}
+
+.progressBar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background-color: var(--text-color);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+  opacity: 0.2;
+}
+
+.progressBar + span {
+  position: relative;
+  z-index: 1;
+}
+
+.running {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+:global(.dark) .running {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.running:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+:global(.dark) .running:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.stopping {
+  opacity: 0.7;
+}
+
+.quickStartBtn {
+  composes: btn;
+  height: 24px;
+  padding: 0 24px !important;
+  min-width: 100px;
+  color: white;
+  border: none;
+  background-color: var(--stop-btn);
+  transition: background-color 0.2s ease !important;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickStartBtn:not(:disabled):hover {
+  background-color: var(--stop-btn-hover) !important;
+  transform: translateY(-1px);
+}
+
+.quickStartBtn[data-state="start"] {
+  background-color: var(--run-btn);
+}
+
+.quickStartBtn[data-state="start"]:not(:disabled):hover {
+  background-color: var(--run-btn-hover) !important;
+}
+
+.quickStartBtn[data-state="download"] {
+  background-color: var(--download-btn);
+}
+
+.quickStartBtn[data-state="download"]:not(:disabled):hover {
+  background-color: var(--download-btn-hover) !important;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.iconButton:hover {
+  opacity: 0.9;
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+:global(.dark) .iconButton:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.shimmer {
+  --border-width: 1px;
+  --border-radius: 6px;
+  position: relative;
+  border: var(--border-width) solid transparent;
+  isolation: isolate;
+}
+
+.shimmer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  left: -100%;
+  animation: shine 2s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+    transition-property: left;
+  }
+  32.5%,
+  100% {
+    left: 100%;
+    transition-property: left;
+  }
+}
+
+.shimmer:disabled::before {
+  animation: none;
+}

@@ -1,14 +1,52 @@
 const axios = require('axios');
 const path = require('path');
+const getDownloadTimestamps = require('./downloadTimestamps');
 
 /**
- * Utility functions for checking updates via releases.drivechain.info
+ * Utility functions for checking updates via releases.drivechain.info and GitHub releases
  */
 
-// Cache the last fetch time and result to avoid hitting rate limits
-let lastFetchTime = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-let cachedResult = null;
+/**
+ * Fetches the latest release from GitHub
+ * @param {Object} github The GitHub configuration object
+ * @returns {Promise<Object>} The latest release information
+ */
+async function fetchLatestGithubRelease(github) {
+    try {
+        const response = await axios.get(
+            `https://api.github.com/repos/${github.owner}/${github.repo}/releases/latest`
+        );
+        
+        const release = response.data;
+        const version = release.tag_name.replace(/^v/, '');
+        const assets = {};
+
+        // Match assets to platform patterns
+        for (const [platform, pattern] of Object.entries(github.asset_patterns)) {
+            if (!pattern) continue;
+            
+            const regex = new RegExp(pattern);
+            const asset = release.assets.find(a => regex.test(a.name));
+            
+            if (asset) {
+                assets[platform] = {
+                    download_url: asset.browser_download_url,
+                    filename: asset.name,
+                    size: asset.size
+                };
+            }
+        }
+
+        return {
+            version,
+            assets,
+            published_at: release.published_at
+        };
+    } catch (error) {
+        console.error('Failed to fetch GitHub release:', error);
+        throw error;
+    }
+}
 
 /**
  * Compares version strings (e.g., v1.9.1 vs v1.9.2)
@@ -63,18 +101,11 @@ async function getLatestVersion(url) {
  * Fetches update information for all components
  * @param {Object} chainConfig The chain configuration object
  * @param {Object} chainManager The chain manager instance
- * @param {boolean} [force=false] Force fetch even if cache is valid
  * @returns {Promise<Object>} Update information for all components
  * @throws {Error} If the fetch fails
  */
-async function fetchGithubReleases(chainConfig, chainManager, force = false) {
+async function fetchGithubReleases(chainConfig, chainManager) {
     try {
-        // Check cache unless force refresh is requested
-        const now = Date.now();
-        if (!force && cachedResult && (now - lastFetchTime) < CACHE_DURATION) {
-            return cachedResult;
-        }
-
         const updates = {};
 
         // Get status of all chains
@@ -99,38 +130,66 @@ async function fetchGithubReleases(chainConfig, chainManager, force = false) {
         // Check each downloaded chain for updates
         for (const chain of downloadedChains) {
             try {
-                // Get current version from binary path if available
-                let currentVersion = chain.version;
-                if (!currentVersion && chain.binary[process.platform]) {
-                    const binaryPath = chain.binary[process.platform];
-                    const versionMatch = binaryPath.match(/\d+\.\d+\.\d+/);
-                    if (versionMatch) {
-                        currentVersion = versionMatch[0];
+                let latestVersion;
+                let platforms;
+
+                // Handle GitHub releases differently
+                if (chain.github?.use_github_releases) {
+                    const release = await fetchLatestGithubRelease(chain.github);
+                    // Reload timestamps before checking to ensure we have latest state
+                    const timestamps = getDownloadTimestamps();
+                    timestamps.loadTimestamps(); // Force reload from disk
+                    const localTimestamp = timestamps.getTimestamp(chain.id);
+                    
+                    // If no local timestamp or release is newer than our timestamp
+                    const hasUpdate = !localTimestamp || new Date(release.published_at) > new Date(localTimestamp);
+                    
+                    platforms = {};
+                    for (const platform of ['linux', 'darwin', 'win32']) {
+                        const asset = release.assets[platform];
+                        if (asset) {
+                            platforms[platform] = {
+                                filename: asset.filename,
+                                download_url: asset.download_url,
+                                size: asset.size,
+                                found: true
+                            };
+                        } else {
+                            platforms[platform] = {
+                                found: false
+                            };
+                        }
                     }
-                }
 
-                // If we can't determine current version, skip this chain
-                if (!currentVersion) {
+                    updates[chain.id] = {
+                        displayName: chain.display_name,
+                        has_update: hasUpdate,
+                        platforms
+                    };
+                    
+                    // Skip the version comparison since we're using timestamps
                     continue;
-                }
+                } else {
+                    // Traditional releases.drivechain.info approach
+                    // Get current version from binary path if available
+                    let currentVersion = chain.version;
+                    if (!currentVersion && chain.binary[process.platform]) {
+                        const binaryPath = chain.binary[process.platform];
+                        const versionMatch = binaryPath.match(/\d+\.\d+\.\d+/);
+                        if (versionMatch) {
+                            currentVersion = versionMatch[0];
+                        }
+                    }
 
-                // Get latest version from the release server
-                const latestVersion = await getLatestVersion(chain.download.urls[process.platform]);
-                
-                // If we can't determine latest version, skip this chain
-                if (!latestVersion) {
-                    continue;
-                }
+                    // If we can't determine current version, skip this chain
+                    if (!currentVersion) {
+                        continue;
+                    }
 
-                // Compare versions to check for update
-                const hasUpdate = compareVersions(currentVersion, latestVersion) < 0;
+                    latestVersion = await getLatestVersion(chain.download.urls[process.platform]);
+                    if (!latestVersion) continue;
 
-                updates[chain.id] = {
-                    displayName: chain.display_name,
-                    current_version: currentVersion,
-                    latest_version: latestVersion,
-                    has_update: hasUpdate,
-                    platforms: {
+                    platforms = {
                         linux: {
                             filename: path.basename(chain.download.urls.linux),
                             download_url: chain.download.urls.linux,
@@ -149,18 +208,25 @@ async function fetchGithubReleases(chainConfig, chainManager, force = false) {
                             size: chain.download.sizes.win32 || null,
                             found: true
                         }
-                    }
-                };
+                    };
+
+                    // Compare versions to check for update
+                    const hasUpdate = compareVersions(currentVersion, latestVersion) < 0;
+
+                    updates[chain.id] = {
+                        displayName: chain.display_name,
+                        current_version: currentVersion,
+                        latest_version: latestVersion,
+                        has_update: hasUpdate,
+                        platforms
+                    };
+                }
             } catch (error) {
                 console.error(`Failed to check updates for ${chain.id}:`, error);
                 // Skip this chain if there's an error
                 continue;
             }
         }
-
-        // Update cache
-        lastFetchTime = now;
-        cachedResult = updates;
 
         return updates;
     } catch (error) {

@@ -47,6 +47,15 @@ class WalletManager extends EventEmitter {
       });
       const success = await this.walletService.saveWallet(wallet);
       if (!success) throw new Error('Failed to save imported wallet');
+
+      // Generate all chain starters immediately
+      try {
+        await this.walletService.generateAllStarters();
+      } catch (error) {
+        console.error('Error generating chain starters:', error);
+        // Don't throw here - master wallet was imported successfully
+      }
+
       return wallet;
     } catch (error) {
       console.error('Error importing master wallet:', error);

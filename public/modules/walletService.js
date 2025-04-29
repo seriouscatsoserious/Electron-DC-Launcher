@@ -136,6 +136,14 @@ class WalletService extends EventEmitter {
         derivation_path: sidechainPath
       };
 
+      const chainNames = {
+        9: 'Thunder',
+        2: 'Bitnames',
+        3: 'ZSide'
+      };
+      const chainName = chainNames[sidechainSlot] || 'Unknown';
+      console.log(`Generated new sidechain starter for slot ${sidechainSlot} (${chainName})`);
+      
       await this.saveSidechainStarter(sidechainSlot, sidechainStarter);
       return sidechainStarter;
     } catch (error) {
@@ -171,8 +179,19 @@ class WalletService extends EventEmitter {
   }
 
   async saveL1Starter(walletData) {
+    // Save full wallet data
     const l1Path = path.join(this.walletDir, 'l1_starter.json');
     await fs.writeJson(l1Path, walletData, { spaces: 2 });
+
+    // Save mnemonic only for L1 if it doesn't exist
+    const mnemonicPath = path.join(this.mnemonicsDir, 'l1.txt');
+    if (!(await fs.pathExists(mnemonicPath))) {
+      console.log('Creating new mnemonic file for L1');
+      await fs.writeFile(mnemonicPath, walletData.mnemonic);
+    } else {
+      console.log('Mnemonic file already exists for L1, skipping creation');
+    }
+    
     this.emit('wallet-updated');
   }
 
@@ -184,10 +203,22 @@ class WalletService extends EventEmitter {
     // Save mnemonic only for chain apps if it doesn't exist
     const mnemonicPath = path.join(this.mnemonicsDir, `sidechain_${slot}.txt`);
     if (!(await fs.pathExists(mnemonicPath))) {
-      console.log(`Creating new mnemonic file for slot ${slot}`);
+      const chainNames = {
+        9: 'Thunder',
+        2: 'Bitnames',
+        3: 'ZSide'
+      };
+      const chainName = chainNames[slot] || 'Unknown';
+      console.log(`Creating new mnemonic file for slot ${slot} (${chainName})`);
       await fs.writeFile(mnemonicPath, walletData.mnemonic);
     } else {
-      console.log(`Mnemonic file already exists for slot ${slot}, skipping creation`);
+      const chainNames = {
+        9: 'Thunder',
+        2: 'Bitnames',
+        3: 'ZSide'
+      };
+      const chainName = chainNames[slot] || 'Unknown';
+      console.log(`Mnemonic file already exists for slot ${slot} (${chainName}), skipping creation`);
     }
     
     this.emit('wallet-updated');
@@ -360,13 +391,12 @@ class WalletService extends EventEmitter {
       }
 
       // Check and generate sidechain starters if needed
-      const sidechainSlots = [9, 2]; // Thunder and Bitnames respectively
+      const sidechainSlots = [9, 2, 3]; // Thunder, Bitnames, and ZSide respectively
       for (const slot of sidechainSlots) {
         const sidechainPath = path.join(this.walletDir, `sidechain_${slot}_starter.json`);
         if (!(await fs.pathExists(sidechainPath))) {
           try {
             await this.deriveSidechainStarter(slot);
-            console.log(`Generated new sidechain starter for slot ${slot}`);
           } catch (error) {
             console.error(`Error generating sidechain starter for slot ${slot}:`, error);
           }

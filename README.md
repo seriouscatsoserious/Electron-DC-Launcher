@@ -50,6 +50,20 @@ npm start
 
 This will start the Electron app and the React dev server.
 
+### Linux-specific Instructions
+When running on Linux from the command line, you might need to run the application with the `--no-sandbox` flag if you encounter sandbox-related errors:
+
+```sh
+./drivechain-launcher --no-sandbox
+```
+
+For a more secure setup when running from command line, it's recommended to properly configure the Chrome sandbox:
+1. Install the required dependencies (on Ubuntu/Debian):
+   ```sh
+   sudo apt-get install libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
+   ```
+2. Set up the Chrome sandbox by following the [official Electron documentation](https://www.electronjs.org/docs/latest/tutorial/sandbox#linux).
+
 ## 📂 Project Structure
 
 - `public/`: Contains the main Electron process files
@@ -82,6 +96,8 @@ npm run build
 ```
 
 This will create a production-ready build in the `build/` directory.
+
+Built releases can be downloaded at [releases.drivechain.info](https://releases.drivechain.info) under the "drivechain-launcher" section.
 
 ## 🤝 Contributing
 

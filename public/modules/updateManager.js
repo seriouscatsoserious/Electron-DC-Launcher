@@ -1,12 +1,12 @@
 const { fetchGithubReleases } = require('./githubReleaseParser');
 const axios = require('axios');
-const DownloadTimestamps = require('./downloadTimestamps');
+const getDownloadTimestamps = require('./downloadTimestamps');
 
 class UpdateManager {
   constructor(config, chainManager) {
     this.config = config;
     this.chainManager = chainManager;
-    this.timestamps = new DownloadTimestamps();
+    this.timestamps = getDownloadTimestamps();
   }
 
   async checkLastModified(url, chainId) {
@@ -16,6 +16,9 @@ class UpdateManager {
       if (status === 'not_downloaded') {
         return false; // Chain isn't downloaded, so no update needed
       }
+
+      // Reload timestamps before checking
+      this.timestamps = getDownloadTimestamps();
 
       const response = await axios.head(url);
       const serverTimestamp = response.headers['last-modified'];
@@ -34,14 +37,21 @@ class UpdateManager {
 
   async checkForUpdates() {
     try {
-      const updates = {};
+      // First check GitHub-based releases
+      const githubUpdates = await fetchGithubReleases(this.config, this.chainManager);
+      const updates = { ...githubUpdates };
       
-      // Check each chain
+      // Then check traditional releases
       for (const chain of this.config.chains) {
-        const url = chain.download.urls[process.platform];
-        if (!url) continue;
+        // Skip GitHub-based releases as they're already handled
+        if (chain.github?.use_github_releases) continue;
+        
+        // Skip if no download URLs
+        if (!chain.download?.urls?.[process.platform]) continue;
 
+        const url = chain.download.urls[process.platform];
         const needsUpdate = await this.checkLastModified(url, chain.id);
+        
         if (needsUpdate) {
           updates[chain.id] = {
             displayName: chain.display_name,

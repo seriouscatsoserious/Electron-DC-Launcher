@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   downloadChain: (chainId) => ipcRenderer.invoke("download-chain", chainId),
   startChain: (chainId, args) => ipcRenderer.invoke("start-chain", chainId, args),
   getChainBlockCount: (chainId) => ipcRenderer.invoke("get-chain-block-count", chainId),
+  getBitcoinInfo: () => ipcRenderer.invoke("get-bitcoin-info"),
   getMnemonicPath: (chainId) => ipcRenderer.invoke("get-mnemonic-path", chainId),
   stopChain: (chainId) => ipcRenderer.invoke("stop-chain", chainId),
   getChainStatus: (chainId) => ipcRenderer.invoke("get-chain-status", chainId),
@@ -126,8 +127,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener("shutdown-started", subscription);
     };
   },
+  onDownloadsInProgress: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on("downloads-in-progress", subscription);
+    return () => {
+      ipcRenderer.removeListener("downloads-in-progress", subscription);
+    };
+  },
   forceKill: () => ipcRenderer.invoke("force-kill"),
+  forceQuitWithDownloads: () => ipcRenderer.invoke("force-quit-with-downloads"),
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
+  notifyReady: () => ipcRenderer.invoke("notify-ready"),
 
   // Chain logs
   onChainLog: (chainId, callback) => {

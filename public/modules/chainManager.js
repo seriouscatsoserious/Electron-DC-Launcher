@@ -7,9 +7,10 @@ const BitWindowClient = require("./bitWindowClient");
 const EnforcerClient = require("./enforcerClient");
 
 class ChainManager {
-  constructor(mainWindow, config) {
+  constructor(mainWindow, config, downloadManager) {
     this.mainWindow = mainWindow;
     this.config = config;
+    this.downloadManager = downloadManager;
     this.runningProcesses = {};
     this.chainStatuses = new Map(); // Tracks detailed chain statuses
     this.bitcoinMonitor = new BitcoinMonitor(mainWindow);
@@ -18,6 +19,17 @@ class ChainManager {
     this.logProcesses = new Map(); // Track log streaming processes
     this.processCheckers = new Map(); // Track process check intervals
     this.enforcerClient = new EnforcerClient(); // Connect to enfocer gRPC
+
+    // Handle download completion
+    this.downloadManager?.on('download-complete', async (chainId) => {
+      if (chainId === 'bitcoin') {
+        try {
+          await this.writeBitcoinConfig();
+        } catch (error) {
+          console.error('Failed to write bitcoin.conf after download:', error);
+        }
+      }
+    });
   }
 
   async isChainReady(chainId) {
@@ -57,20 +69,72 @@ class ChainManager {
     return [
       '-signet',
       '-server',
-      '-addnode=172.105.148.135:38333',
       '-signetblocktime=60',
       '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
       '-acceptnonstdtxn',
       '-listen',
-      '-rpcbind=0.0.0.0',
       '-rpcallowip=0.0.0.0/0',
       '-txindex',
       '-fallbackfee=0.00021',
       '-zmqpubsequence=tcp://0.0.0.0:29000',
       '-rpcuser=user',
       '-rpcpassword=password',
-      '-rpcport=38332'
+      '-rpcbind=0.0.0.0',
+      '-rpcport=38332',
+      '-addnode=172.105.148.135:38333'
     ];
+  }
+
+  async writeBitcoinConfig() {
+    try {
+      const chain = this.getChainConfig('bitcoin');
+      if (!chain) throw new Error("Bitcoin chain config not found");
+
+      const platform = process.platform;
+      const baseDir = chain.directories.base[platform];
+      if (!baseDir) throw new Error(`No base directory configured for platform ${platform}`);
+
+      const homeDir = app.getPath("home");
+      const fullPath = path.join(homeDir, baseDir);
+      
+      // Ensure the directory exists
+      await fs.ensureDir(fullPath);
+      
+      const configPath = path.join(fullPath, 'bitcoin.conf');
+      
+      // Don't overwrite if config already exists
+      if (await fs.pathExists(configPath)) {
+        console.log('bitcoin.conf already exists, skipping creation');
+        return;
+      }
+
+      // Create config content with signet section
+      const configContent = [
+        'signet=1',
+        'server=1',
+        'signetblocktime=60',
+        'signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
+        'acceptnonstdtxn=1',
+        'listen=1',
+        'rpcallowip=0.0.0.0/0',
+        'txindex=1',
+        'fallbackfee=0.00021',
+        'zmqpubsequence=tcp://0.0.0.0:29000',
+        'rpcuser=user',
+        'rpcpassword=password',
+        '',
+        '[signet]',
+        'rpcbind=0.0.0.0',
+        'rpcport=38332',
+        'addnode=172.105.148.135:38333'
+      ].join('\n');
+
+      await fs.writeFile(configPath, configContent);
+      console.log(`Created bitcoin.conf at ${configPath}`);
+    } catch (error) {
+      console.error('Failed to write bitcoin.conf:', error);
+      throw error;
+    }
   }
 
   getChainArgs(chainId) {
@@ -78,16 +142,51 @@ class ChainManager {
       return this.getBitcoinArgs();
     }
     if (chainId === 'enforcer') {
+      const mnemonicsPath = path.join(app.getPath('userData'), 'wallet_starters', 'mnemonics', 'l1.txt');
+      const walletArg = fs.existsSync(mnemonicsPath) 
+        ? `--wallet-seed-file=${mnemonicsPath}`
+        : '--wallet-auto-create';
+
       return [
         '--node-rpc-pass=password',
         '--node-rpc-user=user',
         '--node-rpc-addr=127.0.0.1:38332',
         '--node-zmq-addr-sequence=tcp://127.0.0.1:29000',
         '--enable-wallet',
-        '--wallet-auto-create'
+        walletArg
       ];
     }
     return [];
+  }
+
+  async getBinaryPathForChain(chainId) {
+    const chain = this.getChainConfig(chainId);
+    if (!chain) throw new Error("Chain not found");
+
+    const platform = process.platform;
+    const extractDir = chain.extract_dir?.[platform];
+    if (!extractDir) throw new Error(`No extract directory configured for platform ${platform}`);
+
+    const downloadsDir = app.getPath("downloads");
+    const basePath = path.join(downloadsDir, extractDir);
+
+    // For GitHub-based releases, scan directory
+    if (chain.github?.use_github_releases) {
+      const pattern = chain.binary[platform];
+      if (!pattern) throw new Error(`No binary pattern for platform ${platform}`);
+
+      const files = await fs.readdir(basePath);
+      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+      const match = files.find(f => regex.test(f));
+      if (!match) throw new Error(`No matching binary found in ${basePath}`);
+      
+      return path.join(basePath, match);
+    }
+
+    // For traditional releases, use static path
+    const binaryPath = chain.binary[platform];
+    if (!binaryPath) throw new Error(`No binary configured for platform ${platform}`);
+    return path.join(basePath, binaryPath);
   }
 
   async startChain(chainId, additionalArgs = []) {
@@ -167,17 +266,18 @@ class ChainManager {
           });
         } else {
           // For other platforms, launch binary directly
-          const binaryPath = chain.binary[platform];
-          if (!binaryPath) throw new Error(`No binary configured for platform ${platform}`);
-          
-          const fullBinaryPath = path.join(basePath, binaryPath);
+          const fullBinaryPath = await this.getBinaryPathForChain(chainId);
           await fs.promises.access(fullBinaryPath, fs.constants.F_OK);
           
           if (process.platform !== "win32") {
             await fs.promises.chmod(fullBinaryPath, "755");
           }
           
-          const childProcess = spawn(fullBinaryPath, [], { cwd: basePath });
+          const childProcess = spawn(fullBinaryPath, [], { 
+            cwd: basePath,
+            // Ensure SIGINT is used for graceful shutdown on Windows
+            windowsHide: true 
+          });
           this.runningProcesses[chainId] = childProcess;
           this.setupProcessListeners(childProcess, chainId, basePath);
         }
@@ -197,12 +297,8 @@ class ChainManager {
     }
 
     // Standard handling for other chains
-    const binaryPath = chain.binary[platform];
-    if (!binaryPath) throw new Error(`No binary configured for platform ${platform}`);
-
-    const fullBinaryPath = path.join(basePath, binaryPath);
-
     try {
+      const fullBinaryPath = await this.getBinaryPathForChain(chainId);
       await fs.promises.access(fullBinaryPath, fs.constants.F_OK);
 
       if (process.platform !== "win32") {
@@ -414,12 +510,64 @@ class ChainManager {
               }, 100);
             });
           } else {
-            childProcess.kill();
+            if (process.platform === 'win32') {
+              // Windows doesn't handle signals like SIGINT the same way as UNIX-based systems,
+              // especially when dealing with child processes that aren't attached to a real terminal
+              // (such as bitwindow!)
+              // So we try to use windows's built-in taskkill command to gracefully stop the process
+              try {
+                if (childProcess.pid) {
+                  // Try graceful termination first with PID
+                  const taskkill = spawn('taskkill', ['/PID', childProcess.pid.toString()]);
+                  await new Promise((resolve) => taskkill.on('exit', resolve));
+                  
+                  // If process is still running after 2 seconds, force kill by PID
+                  await new Promise(resolve => setTimeout(resolve, 2000));
+                  if (this.runningProcesses[chainId]) {
+                    const forceKill = spawn('taskkill', ['/F', '/PID', childProcess.pid.toString()]);
+                    await new Promise((resolve) => forceKill.on('exit', resolve));
+                  }
+                } else {
+                  // Fallback to application name if PID is undefined
+                  const processName = 'bitwindow.exe';
+                  const taskkill = spawn('taskkill', ['/IM', processName]);
+                  await new Promise((resolve) => taskkill.on('exit', resolve));
+                  
+                  // If still running after 2 seconds, force kill by image name
+                  await new Promise(resolve => setTimeout(resolve, 2000));
+                  if (this.runningProcesses[chainId]) {
+                    const forceKill = spawn('taskkill', ['/F', '/IM', processName]);
+                    await new Promise((resolve) => forceKill.on('exit', resolve));
+                  }
+                }
+              } catch (error) {
+                console.error(`Failed to TASKKILL process:`, error);
+              }
+            } else {
+              // Send SIGINT for graceful shutdown
+              childProcess.kill('SIGINT');
+            }
+            
+            // Give BitWindow time to cleanup and shutdown
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Force kill if still running
+            if (this.runningProcesses[chainId]) {
+              childProcess.kill();
+            }
           }
           return { success: true };
         } catch (error) {
           console.error('Failed to stop BitWindow gracefully:', error);
-          // Just in case process is still in our tracking
+          // Force kill as last resort
+          try {
+            if (this.runningProcesses[chainId]) {
+              childProcess.kill();
+            }
+          } catch (e) {
+            console.error('Failed to force kill BitWindow:', e);
+          }
+          // Clean up tracking
           delete this.runningProcesses[chainId];
           this.chainStatuses.set(chainId, 'stopped');
           return { success: true };
@@ -453,6 +601,7 @@ class ChainManager {
             '-rpcuser=user',
             '-rpcpassword=password',
             '-rpcport=38332',
+            '-rpcbind=0.0.0.0',
             'stop'
           ], {
             shell: true
@@ -520,13 +669,8 @@ class ChainManager {
     }
 
     // Standard handling for other chains
-    const binaryPath = chain.binary[platform];
-    if (!binaryPath) throw new Error(`No binary configured for platform ${platform}`);
-
-    const basePath = path.join(downloadsDir, extractDir);
-    const fullBinaryPath = path.join(basePath, binaryPath);
-
     try {
+      const fullBinaryPath = await this.getBinaryPathForChain(chainId);
       await fs.promises.access(fullBinaryPath);
       if (this.runningProcesses[chainId]) {
         return this.chainStatuses.get(chainId) || "running";
@@ -539,6 +683,93 @@ class ChainManager {
 
   async resetChain(chainId) {
     try {
+      // Special handling for BitWindow - reset all related chains
+      if (chainId === 'bitwindow') {
+        const chainsToReset = ['bitwindow', 'bitcoin', 'enforcer'];
+        
+        // First clean up all downloads for involved chains
+        if (this.downloadManager) {
+          for (const id of chainsToReset) {
+            const chain = this.getChainConfig(id);
+            if (!chain) continue;
+            
+            const platform = process.platform;
+            const extractDir = chain.extract_dir?.[platform];
+            if (extractDir) {
+              const downloadsDir = app.getPath("downloads");
+              const extractPath = path.join(downloadsDir, extractDir);
+              await this.downloadManager.cleanupChainDownloads(id, extractPath);
+            }
+          }
+        }
+
+        // Stop all involved chains if running
+        for (const id of chainsToReset) {
+          if (this.runningProcesses[id]) {
+            await this.stopChain(id);
+          }
+          // Set status to stopped immediately
+          this.chainStatuses.set(id, 'stopped');
+          this.mainWindow.webContents.send("chain-status-update", {
+            chainId: id,
+            status: "stopped",
+          });
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Reset each chain's data
+        for (const id of chainsToReset) {
+          const chain = this.getChainConfig(id);
+          if (!chain) continue;
+
+          const platform = process.platform;
+          const baseDir = chain.directories.base[platform];
+          if (!baseDir) continue;
+
+          const homeDir = app.getPath("home");
+          const fullPath = path.join(homeDir, baseDir);
+          
+          // Remove data directory
+          await fs.remove(fullPath);
+          console.log(`Reset chain ${id}: removed data directory ${fullPath}`);
+
+          // Remove extra folders if any
+          if (chain.extra_delete && Array.isArray(chain.extra_delete)) {
+            for (const extraFolder of chain.extra_delete) {
+              const extraPath = path.join(homeDir, extraFolder);
+              if (await fs.pathExists(extraPath)) {
+                await fs.remove(extraPath);
+                console.log(`Reset chain ${id}: removed extra folder ${extraPath}`);
+              }
+            }
+          }
+
+          // Remove binaries
+          const extractDir = chain.extract_dir?.[platform];
+          if (extractDir) {
+            const downloadsDir = app.getPath("downloads");
+            const binariesPath = path.join(downloadsDir, extractDir);
+            await fs.remove(binariesPath);
+            console.log(`Reset chain ${id}: removed binaries directory ${binariesPath}`);
+          }
+
+          // Recreate empty data directory
+          await fs.ensureDir(fullPath);
+          console.log(`Recreated empty data directory for chain ${id}: ${fullPath}`);
+
+          // Set to not_downloaded
+          this.chainStatuses.set(id, 'not_downloaded');
+          this.mainWindow.webContents.send("chain-status-update", {
+            chainId: id,
+            status: "not_downloaded",
+          });
+        }
+
+        return { success: true };
+      }
+
+      // Standard handling for other chains
       const chain = this.getChainConfig(chainId);
       if (!chain) throw new Error("Chain not found");
 
@@ -546,12 +777,24 @@ class ChainManager {
       const baseDir = chain.directories.base[platform];
       if (!baseDir) throw new Error(`No base directory configured for platform ${platform}`);
 
-      this.chainStatuses.set(chainId, 'resetting');
+      // Set status to stopped immediately to avoid yellow flash
+      this.chainStatuses.set(chainId, 'stopped');
       this.mainWindow.webContents.send("chain-status-update", {
         chainId,
-        status: "resetting",
+        status: "stopped",
       });
 
+      // Aggressively clean up any active downloads first
+      if (this.downloadManager) {
+        const extractDir = chain.extract_dir?.[platform];
+        if (extractDir) {
+          const downloadsDir = app.getPath("downloads");
+          const extractPath = path.join(downloadsDir, extractDir);
+          await this.downloadManager.cleanupChainDownloads(chainId, extractPath);
+        }
+      }
+
+      // Stop the chain if running
       if (this.runningProcesses[chainId]) {
         await this.stopChain(chainId);
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -561,6 +804,19 @@ class ChainManager {
       const fullPath = path.join(homeDir, baseDir);
       await fs.remove(fullPath);
       console.log(`Reset chain ${chainId}: removed data directory ${fullPath}`);
+
+      // Remove extra folders (no OS-specific logic needed)
+      if (chain.extra_delete && Array.isArray(chain.extra_delete)) {
+        for (const extraFolder of chain.extra_delete) {
+          const extraPath = path.join(homeDir, extraFolder);
+          if (await fs.pathExists(extraPath)) {
+            await fs.remove(extraPath);
+            console.log(`Reset chain ${chainId}: removed extra folder ${extraPath}`);
+          } else {
+            console.log(`Extra folder ${extraPath} does not exist, skipping deletion.`);
+          }
+        }
+      }
 
       const extractDir = chain.extract_dir?.[platform];
       if (extractDir) {
@@ -575,6 +831,7 @@ class ChainManager {
 
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      // Now set to not_downloaded for final state
       this.chainStatuses.set(chainId, 'not_downloaded');
       this.mainWindow.webContents.send("chain-status-update", {
         chainId,
@@ -638,12 +895,34 @@ class ChainManager {
     const extractDir = chain.extract_dir?.[platform];
     if (!extractDir) throw new Error(`No extract directory configured for platform ${platform}`);
 
-    const binaryPath = chain.binary[platform];
-    if (!binaryPath) throw new Error(`No binary configured for platform ${platform}`);
-
     const downloadsDir = app.getPath("downloads");
     const basePath = path.join(downloadsDir, extractDir);
+
+    // For GitHub-based releases, just return the base path
+    if (chain.github?.use_github_releases) {
+      return basePath;
+    }
+
+    // For traditional releases, use dirname of static path
+    const binaryPath = chain.binary[platform];
+    if (!binaryPath) throw new Error(`No binary configured for platform ${platform}`);
     return path.join(basePath, path.dirname(binaryPath));
+  }
+
+  async getBitcoinInfo() {
+    try {
+      const status = await this.bitcoinMonitor.checkIBDStatus();
+      return {
+        blocks: status.blocks,
+        inIBD: status.inIBD
+      };
+    } catch (error) {
+      console.error("Failed to get Bitcoin info:", error);
+      return {
+        blocks: 0,
+        inIBD: false
+      };
+    }
   }
 
   async getChainBlockCount(chainId) {
@@ -667,6 +946,61 @@ class ChainManager {
     }
 
     return -1;
+  }
+
+  async resetAllChains() {
+    try {
+      // First clean up all downloads
+      if (this.downloadManager) {
+        await this.downloadManager.cleanupAllDownloads();
+      }
+
+      // Stop all running chains
+      const runningChains = Object.keys(this.runningProcesses);
+      for (const chainId of runningChains) {
+        await this.stopChain(chainId);
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Reset each chain's data
+      for (const chain of this.config.chains) {
+        const chainId = chain.id;
+        const platform = process.platform;
+        
+        // Remove data directory
+        const baseDir = chain.directories.base[platform];
+        if (baseDir) {
+          const homeDir = app.getPath("home");
+          const fullPath = path.join(homeDir, baseDir);
+          await fs.remove(fullPath);
+          await fs.ensureDir(fullPath);
+          console.log(`Reset chain ${chainId}: removed and recreated data directory ${fullPath}`);
+
+        }
+
+
+        // Remove binaries directory
+        const extractDir = chain.extract_dir?.[platform];
+        if (extractDir) {
+          const downloadsDir = app.getPath("downloads");
+          const binariesPath = path.join(downloadsDir, extractDir);
+          await fs.remove(binariesPath);
+          console.log(`Reset chain ${chainId}: removed binaries directory ${binariesPath}`);
+        }
+
+        // Update chain status
+        this.chainStatuses.set(chainId, 'not_downloaded');
+        this.mainWindow.webContents.send("chain-status-update", {
+          chainId,
+          status: "not_downloaded",
+        });
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to reset all chains:", error);
+      return { success: false, error: error.message };
+    }
   }
 }
 

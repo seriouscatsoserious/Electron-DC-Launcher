@@ -1,11 +1,14 @@
 :root {
+  /* Colors */
   --bg-color: #ffffff;
   --text-color: #333333;
-  --card-bg: #f0f0f0;
+  --card-bg: #f5f5f5;
   --btn-bg: #e0e0e0;
   --btn-text: #333333;
-  --nav-bg: #f8f8f8;
+  --nav-bg: #e8e8e8;
   --nav-text: #333333;
+  
+  /* Button colors */
   --download-btn: #007bff;
   --download-btn-hover: #0056b3;
   --run-btn: #28a745;
@@ -18,14 +21,25 @@
   --downloading-btn-hover: #cc8400;
   --stopping-btn: #ff6b6b;
   --stopping-btn-hover: #ff4f4f;
+  
+  /* Modal colors */
   --modal-bg: #f0f0f0;
   --modal-text: #333;
   --download-item-bg: #fff;
   --download-item-text: #555;
   --progress-bar-bg: #e0e0e0;
   --progress-bar-fill: #4caf50;
+  
+  /* Base sizing */
+  --base-font-size: 0.95rem;
+  --base-spacing: 0.5rem;
+  
+  /* Fixed window dimensions */
+  --window-width: 900px;
+  --window-height: 400px;
 }
 
+/* Dark theme variables */
 .dark {
   --bg-color: #333333;
   --text-color: #ffffff;
@@ -52,6 +66,7 @@
   --progress-bar-fill: #4caf50;
 }
 
+/* Base styles */
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
@@ -61,368 +76,32 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-.App {
-  text-align: center;
-  background-color: var(--bg-color);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  color: var(--text-color);
-  padding-top: 36px;
-}
-
-.App-header {
-  margin-bottom: 20px;
-}
-
-.card-container {
-  width: 80%;
-  max-width: 800px;
-}
-
-.card {
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  padding: 0;
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  color: var(--text-color);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.dark .card {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.dark .card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-}
-
-.card-header {
-  padding: 20px 20px 20px 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  text-align: left;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.card-content {
-  padding: 15px 20px;
-  flex-grow: 1;
-  text-align: left;
-  background-color: #f5f5f5;
-}
-
-.card-content p {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  color: var(--text-color);
-}
-
-.dark .card-content {
-  background-color: #2a2a2a;
-}
-
-.card-actions {
-  padding: 15px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.btn {
-  width: 120px;
-  margin: 0;
-  padding: 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-align: center;
-  color: white;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
-}
-
-.btn:disabled {
-  cursor: wait;
-  opacity: 0.8;
-}
-
-.settings-icon-button {
-  background: none;
-  border: none;
-  padding: 8px;
-  cursor: pointer;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-color);
-  opacity: 0.7;
-  transition: all 0.2s ease;
-}
-
-.settings-icon-button:hover {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-.dark .settings-icon-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .card-header,
-.dark .card-actions {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.download {
-  background-color: var(--download-btn);
-}
-.download:hover {
-  background-color: var(--download-btn-hover);
-}
-
-.run {
-  background-color: var(--run-btn);
-}
-.run:hover {
-  background-color: var(--run-btn-hover);
-}
-
-.downloading,
-.extracting {
-  background-color: var(--downloading-btn);
-}
-.downloading:hover,
-.extracting:hover {
-  background-color: var(--downloading-btn-hover);
-}
-
-.running {
-  background-color: var(--running-btn);
-}
-.running:hover {
-  background-color: var(--running-btn-hover);
-}
-
-.stop {
-  background-color: var(--stop-btn);
-}
-.stop:hover {
-  background-color: var(--stop-btn-hover);
-}
-
-.stopping {
-  background-color: var(--stopping-btn);
-}
-.stopping:hover {
-  background-color: var(--stopping-btn-hover);
-}
-
-.settings {
-  background-color: var(--btn-bg);
-  color: var(--btn-text);
-}
-
-.Nodes,
-.Wallet,
-.Tools,
-.Settings,
-.Other {
-  width: 100%;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-/* Chain List Layout */
-.chain-list {
-  width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
-  box-sizing: border-box;
-}
-
-
-.chain-heading-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.chain-heading {
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-align: left;
-  margin: 0;
-  padding: 12px 0;
-}
-
-.quick-start-button {
-  background-color: var(--run-btn);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.quick-start-button:hover {
-  background-color: var(--run-btn-hover);
-}
-
-/* Shimmering effect for download button */
-.btn-shimmer {
-  --border-width: 1px;
-  --border-radius: 4px;
-  position: relative;
-  border: var(--border-width) solid transparent;
-  isolation: isolate;
-}
-
-.btn-shimmer::before {
-  content: "";
-  position: absolute;
-  inset: calc(var(--border-width) * -1);
-  z-index: -1;
-  border: inherit;
-  border-radius: inherit;
-  background: linear-gradient(90deg,
-    var(--current-color, var(--download-btn)) 0%,
-    rgba(255, 255, 255, 0.9) 25%,
-    var(--current-color, var(--download-btn)) 50%,
-    var(--current-color, var(--download-btn)) 100%
-  );
-  background-size: 200% 100%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: shine 1s linear infinite;
-}
-
-@keyframes shine {
-  to {
-    background-position: -200% 0;
-  }
-}
-
-.btn-shimmer:disabled::before {
-  animation: none;
-}
-
-/* Set gradient color based on button state */
-.btn-shimmer[data-state="download"] {
-  --current-color: var(--download-btn);
-}
-
-.btn-shimmer[data-state="start"] {
-  --current-color: var(--run-btn);
-}
-
-/* Quick Start/Stop Button */
-.quick-start-stop-btn {
-  transition: background-color 0.2s ease !important;
-}
-
-.quick-start-stop-btn:not(:disabled):hover {
-  background-color: var(--stop-btn-hover) !important;
-}
-
-.quick-start-stop-btn[data-state="start"]:not(:disabled):hover {
-  background-color: var(--run-btn-hover) !important;
-}
-
-.quick-start-stop-btn[data-state="download"]:not(:disabled):hover {
-  background-color: var(--download-btn-hover) !important;
-}
-
-/* L1 Chain Layout */
-.l1-chains {
-  display: flex;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-.l1-chains::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
-.l1-chains > .card {
-  flex: 1;
-  min-width: 300px;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-/* L2 Chain Layout */
-.l2-chains {
-  display: flex;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-.l2-chains::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
-.l2-chains > .card {
-  flex: 1;
-  min-width: 300px;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-/* Responsive Layout */
-@media (max-width: 768px) {
-  .chain-list {
-    padding: 0 1rem;
-  }
-  
-  .l1-chains > .card,
-  .l2-chains > .card {
-    min-width: 250px; /* Slightly smaller minimum width on mobile */
-  }
-}
-
-.App > div:not(nav) {
-  /* margin-top: 20px; */
+  font-size: var(--base-font-size);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* App container */
+.App {
+  text-align: center;
+  background-color: var(--bg-color);
+  width: var(--window-width);
+  height: var(--window-height);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  color: var(--text-color);
+  padding-top: 30px;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.App-header {
+  margin-bottom: var(--base-spacing);
 }

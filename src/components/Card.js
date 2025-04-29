@@ -1,10 +1,28 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSelector } from 'react-redux';
 import ChainSettingsModal from './ChainSettingsModal';
 import ForceStopModal from './ForceStopModal';
+import ResetConfirmModal from './ResetConfirmModal';
 import SettingsIcon from './SettingsIcon';
+import GitHubIcon from './GitHubIcon';
+import TrashIcon from './TrashIcon';
 import Tooltip from './Tooltip';
-import './StatusLight.css'; 
+import './StatusLight.css';
+import styles from './Card.module.css';
+import buttonStyles from './Button.module.css';
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${Math.round(size * 10) / 10} ${units[unitIndex]}`;
+};
 
 const Card = ({
   chain,
@@ -16,6 +34,7 @@ const Card = ({
   onReset,
   runningNodes,
 }) => {
+  const downloadInfo = useSelector(state => state.downloads[chain.id]);
   const { isDarkMode } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [showForceStop, setShowForceStop] = useState(false);
@@ -24,33 +43,39 @@ const Card = ({
   const [lastActionTime, setLastActionTime] = useState(0);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [processHealth, setProcessHealth] = useState('offline'); // 'healthy', 'warning', 'error', 'offline'
+  const [tooltipText, setTooltipText] = useState('');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [processHealth, setProcessHealth] = useState('offline');
   const [blockCount, setBlockCount] = useState(-1);
   const [startTime, setStartTime] = useState(null);
   const buttonRef = useRef(null);
 
-  // Periodic chain status / health check
   useEffect(() => {
-    // Track when chain starts running
     if (chain.status === 'running' && !startTime) {
       setStartTime(Date.now());
     } else if (chain.status !== 'running') {
       setStartTime(null);
     }
 
+    // Listen for openChainSettings event
+    const handleOpenChainSettings = (event) => {
+      if (event.detail && event.detail.chainId === chain.id) {
+        handleOpenSettings();
+      }
+    };
+    
+    window.addEventListener('openChainSettings', handleOpenChainSettings);
+
     const fetchBlockCount = async () => {
-      console.log("chain name: ", chain)
       try {
         const count = await window.electronAPI.getChainBlockCount(chain.id);
-        console.log("new count: ", count)
         setBlockCount(count);
       } catch (error) {
-        setBlockCount(-1)
+        setBlockCount(-1);
         console.error('Failed to fetch block count:', error);
       }
     };
 
-    // Immediately set status based on chain state
     if (chain.status === 'stopping' && chain.id === 'bitcoin') {
       setProcessHealth('warning');
     } else if (chain.status === 'not_downloaded' || 
@@ -68,17 +93,14 @@ const Card = ({
       setProcessHealth('warning');
     }
 
-    // Then start interval for additional health checks
     const runningTime = startTime ? Date.now() - startTime : 0;
-    const intervalTime = runningTime > 5000 ? 500 : 5000; // Start at 5 seconds, then speed up to 500ms after 5 seconds
+    const intervalTime = runningTime > 5000 ? 500 : 5000;
 
     const interval = setInterval(() => {
-      // Only do additional health checks if chain is running
       if (chain.status === 'running' || 
           chain.status === 'starting' || 
           chain.status === 'ready') {
         
-        // For non-BitWindow chains, check block count
         if (chain.id !== 'bitwindow') {
           fetchBlockCount();
           if (blockCount === 0) {
@@ -89,26 +111,59 @@ const Card = ({
       }
     }, intervalTime);
 
-    return () => clearInterval(interval);
-  }, [chain.id, chain.status, blockCount]);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('openChainSettings', handleOpenChainSettings);
+    };
+  }, [chain.id, chain.status, blockCount, startTime]);
 
-  const checkDependencies = () => {
+  const checkDependencies = async () => {
+    // For enforcer, check Bitcoin's IBD status - commented out as enforcer no longer depends on bitcoin
+    /*
+    if (chain.id === 'enforcer' && runningNodes.includes('bitcoin')) {
+      try {
+        const info = await window.electronAPI.getBitcoinInfo();
+        if (info.initialblockdownload) {
+          setTooltipText('Wait for Bitcoin IBD to complete before starting Enforcer');
+          return false;
+        }
+      } catch (error) {
+        console.error('Failed to check Bitcoin IBD status:', error);
+      }
+    }
+    */
+    
+    // Check other dependencies
     if (!chain.dependencies || chain.dependencies.length === 0) return true;
-    return chain.dependencies.every(dep => runningNodes.includes(dep));
+    
+    const missing = chain.dependencies.filter(dep => !runningNodes.includes(dep));
+    if (missing.length > 0) {
+      const missingNames = missing.map(id => {
+        const depName = id.split('-').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        return depName;
+      });
+      setTooltipText(`Required dependencies not running:\n${missingNames.join('\n')}`);
+      return false;
+    }
+    
+    return true;
   };
 
   const checkReverseDependencies = () => {
-    // Get all chains that depend on this chain
-    const dependentChains = runningNodes.filter(nodeId => {
-      const chainData = window.cardData.find(c => c.id === nodeId);
-      return chainData?.dependencies?.includes(chain.id);
-    });
-    return dependentChains.length === 0;
-  };
-
-  const getMissingDependencies = () => {
-    if (!chain.dependencies) return [];
-    return chain.dependencies.filter(dep => !runningNodes.includes(dep));
+    const dependentChains = getRunningDependents();
+    if (dependentChains.length > 0) {
+      const dependentNames = dependentChains.map(id => {
+        const depName = id.split('-').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        return depName;
+      });
+      setTooltipText(`Cannot stop: Following chains depend on this:\n${dependentNames.join('\n')}`);
+      return false;
+    }
+    return true;
   };
 
   const getRunningDependents = () => {
@@ -118,40 +173,7 @@ const Card = ({
     });
   };
 
-  const getTooltipText = () => {
-    // Check for missing dependencies when starting
-    if (chain.status === 'downloaded' || chain.status === 'stopped') {
-      const missing = getMissingDependencies();
-      if (missing.length > 0) {
-        const missingNames = missing.map(id => {
-          const depName = id.split('-').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-          ).join(' ');
-          return depName;
-        });
-        return `Required dependencies not running:\n${missingNames.join('\n')}`;
-      }
-    }
-    
-    // Check for running dependents when stopping
-    if (chain.status === 'running' || chain.status === 'starting' || chain.status === 'ready') {
-      const dependents = getRunningDependents();
-      if (dependents.length > 0) {
-        const dependentNames = dependents.map(id => {
-          const depName = id.split('-').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-          ).join(' ');
-          return depName;
-        });
-        return `Cannot stop: Following chains depend on this:\n${dependentNames.join('\n')}`;
-      }
-    }
-    
-    return '';
-  };
-
   const handleAction = async (event) => {
-    // Add cooldown period of 2 seconds between actions
     const now = Date.now();
     if (now - lastActionTime < 2000) {
       console.log('Action blocked: cooldown period');
@@ -159,21 +181,22 @@ const Card = ({
     }
     setLastActionTime(now);
 
-    // Check dependencies before starting
-    if ((chain.status === 'downloaded' || chain.status === 'stopped') && !checkDependencies()) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setTooltipPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top
-      });
-      setTooltipVisible(true);
-      return;
+    if (chain.status === 'downloaded' || chain.status === 'stopped') {
+      const depsOk = await checkDependencies();
+      if (!depsOk) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setTooltipPosition({
+          x: rect.right,
+          y: rect.top + rect.height / 2
+        });
+        setTooltipVisible(true);
+        return;
+      }
     }
 
     switch (chain.status) {
       case 'not_downloaded':
         try {
-          console.log(`Initiating download for chain ${chain.id}`);
           await onDownload(chain.id);
         } catch (error) {
           console.error('Download failed:', error);
@@ -183,7 +206,6 @@ const Card = ({
       case 'downloaded':
       case 'stopped':
         try {
-          console.log(`Starting chain ${chain.id}`);
           await onStart(chain.id);
         } catch (error) {
           console.error('Start failed:', error);
@@ -193,21 +215,31 @@ const Card = ({
       case 'starting':
       case 'ready':
         try {
-          // Check for running dependent chains
           if (!checkReverseDependencies()) {
-            setShowForceStop(true);
+            const rect = buttonRef.current.getBoundingClientRect();
+            setTooltipPosition({
+              x: rect.right,
+              y: rect.top + rect.height / 2
+            });
+            setTooltipVisible(true);
             return;
           }
           
           setProcessHealth('offline');
-
-          console.log(`Stopping chain ${chain.id}`);
-          // Update UI immediately to show stopping state
           onUpdateChain(chain.id, { status: 'stopping' });
-          await onStop(chain.id);
+
+          // If this is bitwindow, stop all three chains
+          if (chain.id === 'bitwindow') {
+            const chainsToStop = ['bitwindow', 'bitcoin', 'enforcer'];
+            for (const chainId of chainsToStop) {
+              onUpdateChain(chainId, { status: 'stopping' });
+              await onStop(chainId);
+            }
+          } else {
+            await onStop(chain.id);
+          }
         } catch (error) {
           console.error('Stop failed:', error);
-          // Revert to running state if stop fails
           onUpdateChain(chain.id, { status: 'running' });
         }
         break;
@@ -216,7 +248,6 @@ const Card = ({
 
   const handleForceStop = async () => {
     try {
-      console.log(`Force stopping chain ${chain.id}`);
       onUpdateChain(chain.id, { status: 'stopping' });
       await onStop(chain.id);
     } catch (error) {
@@ -296,7 +327,6 @@ const Card = ({
     }
   };
 
-  // Hide tooltip when mouse leaves button
   const handleMouseLeave = () => {
     setIsHovered(false);
     setTooltipVisible(false);
@@ -304,60 +334,114 @@ const Card = ({
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '300px' }}>
-        <div className={`card ${isDarkMode ? 'dark' : 'light'}`}>
-          <div className="card-header" style={{ position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0, lineHeight: 1.2, textAlign: 'left' }}>{chain.display_name}</h2>
-            <div className={`status-light ${processHealth}`} title={`Process Status: ${processHealth}`} />
-          </div>
-          <div style={{ fontSize: '0.8em', color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(51, 51, 51, 0.6)', marginTop: '4px', fontWeight: 400 }}>
-            {chain.status === 'running' || chain.status === 'starting' || chain.status === 'ready' ? 
-              (chain.id === 'bitwindow' ? 'Running' :
-               blockCount >= 0 ? `Block Height: ${blockCount}` : 'Running') :
-              (chain.status === 'stopping' && chain.id === 'bitcoin' ? 'Stopping...' : 'Offline')}
-          </div>
+      <div className={`card ${styles.card} ${isDarkMode ? 'dark' : 'light'}`}>
+        <div className={styles.actionSection}>
+          <button
+            ref={buttonRef}
+            className={`${buttonStyles.btn} ${buttonStyles[getButtonClass()]}`}
+            onClick={handleAction}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={handleMouseLeave}
+            disabled={
+              chain.status === 'downloading' ||
+              chain.status === 'extracting' ||
+              chain.status === 'stopping'
+            }
+            id={`download-button-${chain.id}`}
+          >
+            {downloadInfo && (chain.status === 'downloading' || chain.status === 'extracting') && (
+              <div 
+                className={buttonStyles.progressBar}
+                style={{ transform: `scaleX(${downloadInfo.progress / 100})` }}
+              />
+            )}
+            <span>{getButtonText()}</span>
+          </button>
+        </div>
 
+        <div className={styles.chainTypeSection}>
+          <div className={`${styles.chainTypeBadge} ${chain.chain_type === 0 ? styles.l1Badge : styles.l2Badge}`}>
+            {chain.chain_type === 0 ? 'L1' : 'L2'}
           </div>
-          <div className="card-content">
-            <p>{chain.description}</p>
+        </div>
+
+        <div className={styles.titleSection}>
+          <h2 className={styles.title}>{chain.display_name}</h2>
+          <div className={styles.statusGroup}>
+            <div className={`status-light ${processHealth} ${styles.statusLight}`} title={`Process Status: ${processHealth}`} />
+            <div className={styles.statusText}>
+              {chain.status === 'running' || chain.status === 'starting' || chain.status === 'ready' ? 
+                (chain.id === 'bitwindow' ? 'Running' :
+                 blockCount >= 0 ? `Block Height: ${blockCount}` : 'Running') :
+                (chain.status === 'stopping' && chain.id === 'bitcoin' ? 'Stopping...' : 'Offline')}
+            </div>
           </div>
-          <div className="card-actions">
-            <button
-              ref={buttonRef}
-              className={`btn ${getButtonClass()}`}
-              onClick={handleAction}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={handleMouseLeave}
+        </div>
+
+        <div className={styles.descriptionSection}>
+          <p className={styles.description}>{chain.description}</p>
+        </div>
+
+        <div className={styles.iconSection}>
+          <div className={styles.iconGroup}>
+            <button className={buttonStyles.iconButton} onClick={handleOpenSettings} aria-label="Chain Settings">
+              <SettingsIcon />
+            </button>
+            <button 
+              className={buttonStyles.iconButton} 
+              onClick={() => setShowResetConfirm(true)} 
+              aria-label="Reset Chain"
               disabled={
-                chain.status === 'downloading' || 
+                chain.status === 'not_downloaded' ||
+                chain.status === 'downloading' ||
                 chain.status === 'extracting' ||
                 chain.status === 'stopping'
               }
-              id={`download-button-${chain.id}`}
+              style={{
+                cursor: chain.status === 'not_downloaded' ||
+                        chain.status === 'downloading' ||
+                        chain.status === 'extracting' ||
+                        chain.status === 'stopping' 
+                  ? 'not-allowed' 
+                  : 'pointer'
+              }}
             >
-              {getButtonText()}
+              <TrashIcon />
             </button>
-            <button className="settings-icon-button" onClick={handleOpenSettings} aria-label="Chain Settings">
-              <SettingsIcon />
-            </button>
+            <a 
+              href={chain.repo_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonStyles.iconButton}
+              aria-label="View GitHub Repository"
+            >
+              <GitHubIcon />
+            </a>
           </div>
-          <Tooltip 
-            text={getTooltipText()}
-            visible={tooltipVisible}
-            position={tooltipPosition}
-          />
         </div>
       </div>
+
+      <Tooltip 
+        text={tooltipText}
+        visible={tooltipVisible}
+        position={tooltipPosition}
+      />
+
       {showSettings && (
         <ChainSettingsModal
           chain={fullChainData}
           onClose={() => setShowSettings(false)}
           onOpenDataDir={handleOpenDataDir}
           onOpenWalletDir={onOpenWalletDir}
-          onReset={onReset}
+          onReset={chain.status === 'not_downloaded' ||
+                  chain.status === 'downloading' ||
+                  chain.status === 'extracting' ||
+                  chain.status === 'stopping'
+            ? undefined 
+            : onReset}
         />
       )}
+
       {showForceStop && (
         <ForceStopModal
           chainName={chain.display_name}
@@ -367,6 +451,18 @@ const Card = ({
             const chainData = window.cardData.find(c => c.id === id);
             return chainData?.display_name || id;
           })}
+        />
+      )}
+
+      {showResetConfirm && (
+        <ResetConfirmModal
+          chainName={chain.display_name}
+          chainId={chain.id}
+          onConfirm={() => {
+            onReset(chain.id);
+            setShowResetConfirm(false);
+          }}
+          onClose={() => setShowResetConfirm(false)}
         />
       )}
     </>
